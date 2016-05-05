@@ -102,7 +102,7 @@ class ContractingDataBridge(object):
                     logger.debug('Skipping tender {} in status {}'.format(tender['id'], tender['status']))
 
             logger.info('Sleep...')
-            time.sleep(15)
+            time.sleep(100)
 
     def get_tender_contracts(self):
         while True:
