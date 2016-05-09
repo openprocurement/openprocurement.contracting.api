@@ -202,18 +202,18 @@ class ContractingDataBridge(object):
     def run(self):
         try:
             logger.info('Start Contracting Data Bridge')
-            jobs = [gevent.spawn(self.get_tender_contracts_forward),
+            self.jobs = [gevent.spawn(self.get_tender_contracts_forward),
                     gevent.spawn(self.get_tender_contracts_backward),
                     gevent.spawn(self.get_tender_contracts),
                     gevent.spawn(self.prepare_contract_data),
                     gevent.spawn(self.put_contracts),
                     gevent.spawn(self.retry_put_contracts),
                     ]
-            gevent.joinall(jobs)
+            gevent.joinall(self.jobs)
         except Exception, e:
             logger.exception(e)
             logger.info('Exiting...')
-            gevent.killall(jobs)
+            gevent.killall(self.jobs)
 
 
 def main():
