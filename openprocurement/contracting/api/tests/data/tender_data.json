@@ -4,6 +4,9 @@
          "status":"complete",
          "id":"9591a5d52be641f08026330ddb197cd8",
          "owner":"quintagroup.ua",
+         "procuringEntity": {
+             "contactPoint": {"telephone": "+380675607138"}
+         },
          "contracts":[  
             {  
                "status":"active",
@@ -17,6 +20,9 @@
          "status":"complete",
          "owner":"netcast.com.ua",
          "id":"c094dc11a6444d2db8000hcf06dd827b",
+         "procuringEntity": {
+             "contactPoint": {"telephone": "+38011111111"}
+         },
          "contracts":[  
             {  
                "status":"active",
