@@ -9,6 +9,7 @@ def suite():
     suite = unittest.TestSuite()
     suite.addTest(contract.suite())
     suite.addTest(document.suite())
+    suite.addTest(bridge.suite())
     return suite
 
 
