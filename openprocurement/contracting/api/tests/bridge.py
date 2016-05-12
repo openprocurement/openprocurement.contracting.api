@@ -39,7 +39,7 @@ class BaseBridgeTest(unittest.TestCase):
         self.bridge = databridge.ContractingDataBridge(self.config)
         self.bridge.tenders_client_backward = Mock(get_tenders=Mock(return_value=test_tenders_data),
                                                    headers={"X-Client-Request-ID": ""},
-                                                   get_tender=lambda id: munchify{"data": [tender for tender in test_tender_data_with_contracts if id in tender.values()][0]})
+                                                   get_tender=lambda id: munchify({"data": [tender for tender in test_tender_data_with_contracts if id in tender.values()][0]}))
         self.bridge.tenders_client_forward = Mock(get_tenders=Mock(return_value=test_tenders_data[0:6]))
         for tender in self.tenders_queue:
             self.bridge.tenders_queue.put(tender)
@@ -105,10 +105,10 @@ class BrigdePrepairContracts(BaseBridgeTest):
         raise Exception("error in prepare_contract_data")
 
     def test_prepare_contract_data(self):
-        self.bridge.client = Mock(extract_credentials=lambda tender_id: munchify{"data": {"id": tender_id,
-                                                                                          "mode": "mode for test",
-                                                                                          "owner": [x.owner for x in test_tender_data_with_contracts if x.id == tender_id][0],
-                                                                                          "tender_token": databridge.uuid4().hex}})
+        self.bridge.client = Mock(extract_credentials=lambda tender_id: munchify({"data": {"id": tender_id,
+                                                                                           "mode": "mode for test",
+                                                                                           "owner": [x.owner for x in test_tender_data_with_contracts if x.id == tender_id][0],
+                                                                                           "tender_token": databridge.uuid4().hex}}))
         prepare_contract_data_gevent = gevent.spawn(self.bridge.prepare_contract_data)
         prepare_contract_data_gevent.join(timeout=1)
         self.assertEqual(self.bridge.contracts_put_queue.get()['owner'], test_tender_data_with_contracts[0]['owner'])
