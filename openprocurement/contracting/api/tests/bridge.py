@@ -1,131 +1,248 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from openprocurement.contracting.api.tests.base import BaseWebTest
-from openprocurement.contracting.api.databridge import generate_req_id, ContractingDataBridge
+from openprocurement.contracting.api import databridge
 from mock import Mock
 from munch import Munch
+import gevent
+from gevent.queue import Queue
 
-
-tenders_data = [
-    Munch({'status': 'active.awarded',
-           'lots': [Munch({'status': 'active',
-                           'description': u'Банани',
-                           'title': u'Банани',
-                           'minimalStep': Munch({'currency': 'UAH',
-                                                 'amount': 210,
-                                                 'valueAddedTaxIncluded': True}),
-                           'auctionPeriod': Munch({'startDate': '2016-04-29T13:48:15+03:00',
-                                                   'endDate': '2016-04-29T14:15:15.778119+03:00'}),
-                           'value': Munch({'currency': 'UAH',
-                                           'amount': 14600,
-                                           'valueAddedTaxIncluded': True}),
-                           'auctionUrl': 'https://auction.openprocurement.org/tenders/e340de0f2b984eada30c0433a40591e0_438a5b08bf9f4c1c973a87fd34ba5a2d',
-                           'id': '438a5b08bf9f4c1c973a87fd34ba5a2d'})], 'dateModified': '2016-05-06T15:26:48.702640+03:00',
-           'id': 'e340de0f2b984eada30c0433a40591e0'}),
-
+test_tender_data_with_contracts = [
     Munch({'status': 'complete',
-           'dateModified': '2016-05-06T15:20:18.294057+03:00',
-           'id': '9591a5d52be641f08026330ddb197cd8'}),
-
-    Munch({'status': 'active.auction',
-           'lots': [Munch({'status': 'active',
-                           'description': u'жирність не меньше 72%',
-                           'title': u'масло вершкове',
-                           'minimalStep': Munch({'currency': 'UAH',
-                                                 'amount': 340,
-                                                 'valueAddedTaxIncluded': True}),
-                           'auctionPeriod': Munch({'startDate': '2016-05-06T15:39:03+03:00'}),
-                           'value': Munch({'currency': 'UAH',
-                                           'amount': 68000,
-                                           'valueAddedTaxIncluded': True}),
-                           'auctionUrl': 'https://auction.openprocurement.org/tenders/1a95bd78ec5440ceb1c6d4d81b806ca5_d6c6cba98a0744bd8a315c2530cc8e90',
-                           'id': 'd6c6cba98a0744bd8a315c2530cc8e90'})],
-           'dateModified': '2016-05-06T15:39:43.278754+03:00',
-           'id': '1a95bd78ec5440ceb1c6d4d81b806ca5'}),
-    Munch({'status': 'active.qualification',
-           'lots': [Munch({'status': 'active',
-                           'description': u'Детальний опис  лоту та технічні (якісні) вимоги до пропонованого Учасниками товару містяться в документації, що додається окремим файлом.',
-                           'title': u'Виробничий одяг',
-                           'minimalStep': Munch({'currency': 'UAH',
-                                                 'amount': 300,
-                                                 'valueAddedTaxIncluded': True}),
-                           'auctionPeriod': Munch({'startDate': '2016-05-05T15:39:20+03:00',
-                                                   'endDate': '2016-05-05T16:00:21.643780+03:00'}),
-                           'value': Munch({'currency': 'UAH',
-                                           'amount': 55600,
-                                           'valueAddedTaxIncluded': True}),
-                           'auctionUrl': 'https://auction.openprocurement.org/tenders/3639115f895b4e508eb2ebc1215c148e_f03fb012b4e5405d827a14106987f5db',
-                           'id': 'f03fb012b4e5405d827a14106987f5db'})],
-           'id': '701a78db57814a32ad14dbb74519ae07'}),
+           'id': '9591a5d52be641f08026330ddb197cd8',
+           'owner': 'quintagroup.ua',
+           'contracts': [Munch({'status': 'active',
+                                'awardID': '6b55fa3b869f4c0ca48b1bd7228b1f70',
+                                'id': 'f56f3a7f0d92226585c5565dd594d66f',
+                                'contractID': 'UA-2016-04-15-000195-b-b1'})]}),
+    Munch({'status': 'complete',
+           'owner': 'netcast.com.ua',
+           'id': 'c094dc11a6444d2db8000hcf06dd827b',
+           'contracts': [Munch({'status': 'active',
+                                'awardID': '6b55fa8b869f4c0ca48b2bd7228b1f70',
+                                'id': 'f56f3a7f0d92426585c5565dd594d66f',
+                                'contractID': 'UA-2016-04-15-000195-b-b1'})]}),
+    Munch({'status': 'complete',
+           'owner': 'prom.ua',
+           'id': 'af9f3e04669d43d5abb07d37fb8007a7',
+           'lots': [Munch({'status': 'complete',
+                           'title': u'послуги з повірки лічильників теплової енергії Katra SKM-1U',
+                           'id': 'e6903f5202eb488aa1e7fda08e0c8ff5'})],
+           'contracts': [Munch({'status': 'non-active',
+                                'awardID': '6b55fa8b869f4c0ca48b2bd7228b1f70',
+                                'id': 'f56f4a7f0d92426588c4165dd594d66f',
+                                'contractID': 'UA-2016-04-25-000195-b-b1'})]}),
+    Munch({'status': 'complete',
+           'id': '9591a5d53be641f08026330ddb197cd8'
+           }),
     Munch({'status': 'active.awarded',
            'lots': [Munch({'status': 'complete',
-                           'description': u'батарея акумуляторна свинцова статерна 6ст-90 для вантажних автомобілів та тракторів.Доставку здійснює Постачальник.',
                            'title': u'акумуляторна батарея 6 ст-90',
-                           'minimalStep': Munch({'currency': 'UAH',
-                                                 'amount': 350,
-                                                 'valueAddedTaxIncluded': True}),
-                           'auctionPeriod': Munch({'startDate': '2016-05-11T15:30:43+03:00',
-                                                   'shouldStartAfter': '2016-05-10T14:20:00+03:00'}),
-                           'value': Munch({'currency': 'UAH',
-                                           'amount': 11670,
-                                           'valueAddedTaxIncluded': True}),
-                           'id': '4a562178b4c1468aa97c501f02576cc9'}),
+                           'id': '4a562178b4c1468aa97c501f02576cc9'
+                           }),
                     Munch({'status': 'active',
-                           'description': u'батарея акумуляторна 6ст-130 для навантажувача Балкан-кар.Доставку здійснює Постачальник.',
                            'title': u'батарея акумуляторна  6 ст-130',
-                           'minimalStep': Munch({'currency': 'UAH',
-                                                 'amount': 100,
-                                                 'valueAddedTaxIncluded': True}),
-                           'auctionPeriod': Munch({'startDate': '2016-05-11T11:27:01+03:00',
-                                                   'shouldStartAfter': '2016-05-10T14:20:00+03:00'}),
-                           'value': Munch({'currency': 'UAH',
-                                           'amount': 3200,
-                                           'valueAddedTaxIncluded': True}),
-                           'id': '2e7bab34b24246dd8693d6da4e6a3e4e'})],
-           'dateModified': '2016-05-06T14:22:00.616442+03:00',
-           'id': '701a78db57814a33ad10dbb74519ae07'}),
-
-    Munch({'status': 'complete',
-           'dateModified': '2016-05-06T15:28:18.382092+03:00',
-           'id': 'c094dc11a6844d2db8000fcf06dd827b'}),
+                           'id': '2e7bab34b24246dd8693d6da4e6a3e4e'}
+                          )],
+           'id': '701a78db57814a33ad10dbb74519ae07'
+           })
 ]
 
+test_tenders_data = [
+    Munch({'status': 'active.awarded',
+           'lots': [Munch({'status': 'active',
+                           'title': u'Банани',
+                           'id': '438a5b08bf9f4c1c973a87fd34ba5a2d'})],
+           'id': 'e340de0f2b984eada30c0433a40591e0'}),
+    Munch({'status': 'complete',
+           'id': '9591a5d52be641f08026330ddb197cd8',
+           }),
+    Munch({'status': 'complete',
+           'id': '9591a5d53be641f08026330ddb197cd8'
+           }),
+    Munch({'id': '1a95bd78ec5440ceb1c6d4d81b806ca5',
+           'status': 'active.auction',
+           'lots': [Munch({'status': 'active',
+                           'title': u'масло вершкове',
+                           'id': 'd6c6cba98a0744bd8a315c2530cc8e90'})]
+           }),
+    Munch({'id': '701a78db57814a32ad14dbb74519ae07',
+           'status': 'active.qualification',
+           'lots': [Munch({'status': 'active',
+                           'title': u'Виробничий одяг',
+                           'id': 'f03fb012b4e5405d827a14106987f5db'})]}),
+    Munch({'status': 'active.awarded',
+           'lots': [Munch({'status': 'complete',
+                           'title': u'акумуляторна батарея 6 ст-90',
+                           'id': '4a562178b4c1468aa97c501f02576cc9'
+                           }),
+                    Munch({'status': 'active',
+                           'title': u'батарея акумуляторна  6 ст-130',
+                           'id': '2e7bab34b24246dd8693d6da4e6a3e4e'}
+                          )],
+           'id': '701a78db57814a33ad10dbb74519ae07'
+           }),
+    Munch({'status': 'complete',
+           'id': 'c094dc11a6444d2db8000hcf06dd827b'
+           }),
+    Munch({'status': 'complete',
+           'id': 'af9f3e04669d43d5abb07d37fb8007a7',
+           'lots': [Munch({'status': 'complete',
+                           'title': u'послуги з повірки лічильників теплової енергії Katra SKM-1U',
+                           'id': 'e6903f5202eb488aa1e7fda08e0c8ff5'})]
+           })
+]
 
-class BridgeTest(BaseWebTest):
+test_contracts_data = [Munch({'tender_token': '8c23c1905f7d4afbada967f91e88880a', 'contractID': 'UA-2016-04-15-000195-b-b1', 'owner': 'quintagroup.ua', 'awardID': '6b55fa3b869f4c0ca48b1bd7228b1f70', 'id': 'f56f3a7f0d92226585c5565dd594d66f', 'tender_id': '9591a5d52be641f08026330ddb197cd8'}),
+                       Munch({'tender_token': 'ad09fc3ec8a64f0c845f46f37494b315', 'contractID': 'UA-2016-04-15-000195-b-b1', 'owner': 'netcast.com.ua', 'awardID': '6b55fa8b869f4c0ca48b2bd7228b1f70', 'id': 'f56f3a7f0d92426585c5565dd594d66f', 'tender_id': 'c094dc11a6444d2db8000hcf06dd827b'})]
+
+test_tenders_queue = [Munch({'status': 'complete', 'owner': 'quintagroup.ua', 'contracts': [Munch({'status': 'active', 'awardID': '6b55fa3b869f4c0ca48b1bd7228b1f70', 'id': 'f56f3a7f0d92226585c5565dd594d66f', 'contractID': 'UA-2016-04-15-000195-b-b1'})], 'id': '9591a5d52be641f08026330ddb197cd8'}),
+                      Munch({'status': 'complete', 'id': '9591a5d53be641f08026330ddb197cd8'}),
+                      Munch({'status': 'active.awarded', 'lots': [Munch({'status': 'complete', 'id': '4a562178b4c1468aa97c501f02576cc9', 'title': u'акумуляторна батарея 6 ст-90'}), Munch({'status': 'active', 'id': '2e7bab34b24246dd8693d6da4e6a3e4e', 'title': u'батарея акумуляторна  6 ст-130'})], 'id': '701a78db57814a33ad10dbb74519ae07'}),
+                      Munch({'status': 'complete', 'owner': 'netcast.com.ua', 'contracts': [Munch({'status': 'active', 'awardID': '6b55fa8b869f4c0ca48b2bd7228b1f70', 'id': 'f56f3a7f0d92426585c5565dd594d66f', 'contractID': 'UA-2016-04-15-000195-b-b1'})], 'id': 'c094dc11a6444d2db8000hcf06dd827b'}),
+                      Munch({'status': 'complete', 'owner': 'prom.ua', 'lots': [Munch({'status': 'complete', 'id': 'e6903f5202eb488aa1e7fda08e0c8ff5', 'title': u'послуги з повірки лічильників теплової енергії Katra SKM-1U'})], 'contracts': [Munch({'status': 'non-active', 'awardID': '6b55fa8b869f4c0ca48b2bd7228b1f70', 'id': 'f56f4a7f0d92426588c4165dd594d66f', 'contractID': 'UA-2016-04-25-000195-b-b1'})], 'id': 'af9f3e04669d43d5abb07d37fb8007a7'})]
+
+test_handicap_contracts_queue = [Munch({'status': 'active', 'awardID': '6b55fa3b869f4c0ca48b1bd7228b1f70', 'tender_id': '9591a5d52be641f08026330ddb197cd8', 'id': 'f56f3a7f0d92226585c5565dd594d66f', 'contractID': 'UA-2016-04-15-000195-b-b1'}),
+                                 Munch({'status': 'active', 'awardID': '6b55fa8b869f4c0ca48b2bd7228b1f70', 'tender_id': 'c094dc11a6444d2db8000hcf06dd827b', 'id': 'f56f3a7f0d92426585c5565dd594d66f', 'contractID': 'UA-2016-04-15-000195-b-b1'})]
+
+
+class BaseBridgeTest(unittest.TestCase):
+
+    tenders_queue = []
+    handicap_contracts_queue = []
+    contracts_put_queue = []
+    contracts_retry_put_queue = []
 
     def setUp(self):
-        self.config = {'loggers': {'': {'handlers': ['console'], 'level': 'DEBUG'}, 'openprocurement.contracting.api.databridge': {'handlers': ['console'], 'propagate': False, 'level': 'DEBUG'}}, 'main': {'tenders_api_server': 'http://0.0.0.0:6543', 'contracting_api_server': 'http://0.0.0.0:6543', 'tenders_api_version': '2.3', 'contracting_api_version': '0', 'api_token': 'contracting_secret'}, 'version': 1, 'formatters': {'simple': {'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'}}, 'handlers': {'console': {'formatter': 'simple', 'class': 'logging.StreamHandler', 'stream': 'ext://sys.stdout', 'level': 'DEBUG'}}}
-        self.bridge = ContractingDataBridge(self.config)
-        self.client = self.bridge.client
-        self.tenders_client_forward = self.bridge.tenders_client_forward
-        # Mock tenders data from db for old tenders
-        self.tenders_client_backward = Mock(params={'feed': 'changes', 'offset': 'e18b858d39400e8d5616943e9857bd96', 'descending': 1, 'mode': '_all_', 'opt_fields': 'status,lots'},
-                                            headers={'Cookie': 'SERVER_ID=ddf2a8db848a4b07a6c96a89de980404a7b987dc03307ca8401de95736f64ea0312df337dd8da351f52eeed712cc27c98ff3269c8ad00a156416a774d8a5cd32; Path=/', 'Content-Type': 'application/json', 'X-Client-Request-ID': 'contracting-data-bridge-req-7208c2d3-4662-4837-9fc1-328d42e5a871'})
+        self.config = {'main': {'tenders_api_server': 'http://0.0.0.0:6543',
+                                'contracting_api_server': 'http://0.0.0.0:6543',
+                                'tenders_api_version': '2.3',
+                                'contracting_api_version': '0',
+                                'api_token': 'contracting'}}
+        databridge.ContractingClient = Mock()
+        databridge.TendersClient = Mock()
+        self.bridge = databridge.ContractingDataBridge(self.config)
+        self.bridge.tenders_client_backward = Mock(get_tenders=Mock(return_value=test_tenders_data),
+                                                   headers={'X-Client-Request-ID': ''},
+                                                   get_tender=lambda id: Munch({'data': [tender for tender in test_tender_data_with_contracts if id in tender.values()][0]}))
+        self.bridge.tenders_client_forward = Mock(get_tenders=Mock(return_value=test_tenders_data[0:6]))
+        for tender in self.tenders_queue:
+            self.bridge.tenders_queue.put(tender)
+        for tender in self.handicap_contracts_queue:
+            self.bridge.handicap_contracts_queue.put(tender)
+        for tender in self.contracts_put_queue:
+            self.bridge.contracts_put_queue.put(tender)
+        for tender in self.contracts_retry_put_queue:
+            self.bridge.contracts_retry_put_queue.put(tender)
 
     def tearDown(self):
-        return
+        self.bridge.tenders_queue = Queue()
+        self.bridge.handicap_contracts_queue = Queue()
+        self.bridge.contracts_put_queue = Queue()
+        self.bridge.contracts_retry_put_queue = Queue()
 
-    def test_generate_req_id(self):
-        self.assertIn('contracting-data-bridge-req-', generate_req_id())
-        self.assertTrue(64, len(generate_req_id()))
 
-    def test_get_tender_contracts_backward_tender_complete(self):
-        get_tenders = Mock(return_value=tenders_data[0:2])
-        self.tenders_client_backward.attach_mock(get_tenders, 'get_tenders')
-        tender_complete = self.bridge.get_tenders(self.tenders_client_backward).next()
-        self.assertEqual(tender_complete.status, 'complete')
+class BridgeBackward(BaseBridgeTest):
 
-    def test_get_tender_contracts_backward_tender_multilot(self):
-        get_tenders = Mock(return_value=tenders_data[3:5])
-        self.tenders_client_backward.attach_mock(get_tenders, 'get_tenders')
-        tender_multilot = self.bridge.get_tenders(self.tenders_client_backward).next()
-        self.assertEqual(len(tender_multilot.lots), 2)
+    def test_get_tenders_contract_backward(self):
+        self.assertEqual(len(self.bridge.tenders_queue), 0)
+        backward_gevent = gevent.spawn(self.bridge.get_tender_contracts_backward)
+        backward_gevent.join(timeout=1)
+        self.assertEqual(len(self.bridge.tenders_queue), 5)
+
+
+class BridgeForward(BaseBridgeTest):
+
+    def test_get_tenders_contract_forward(self):
+        self.assertEqual(len(self.bridge.tenders_queue), 0)
+        forward_gevent = gevent.spawn(self.bridge.get_tender_contracts_forward)
+        forward_gevent.join(timeout=1)
+        self.assertEqual(len(self.bridge.tenders_queue), 3)
+
+
+class BridgeGetContracts(BaseBridgeTest):
+    tenders_queue = test_tenders_queue
+
+    def resourse_error(self, id):
+        raise databridge.ResourceNotFound('error in get_tender_contracts')
+
+    def test_get_tender_contracts(self):
+        self.assertEqual(len(self.bridge.tenders_queue), 5)
+        self.bridge.contracting_client = Mock(get_contract=self.resourse_error)
+        get_tender_contracts_gevent = gevent.spawn(self.bridge.get_tender_contracts)
+        get_tender_contracts_gevent.join(timeout=1)
+        self.assertEqual(len(self.bridge.handicap_contracts_queue), 2)
+
+    def test_get_tender_exist_contracts(self):
+        self.bridge.contracting_client = Mock(get_contract=Mock())
+        get_tender_contracts_gevent = gevent.spawn(self.bridge.get_tender_contracts)
+        get_tender_contracts_gevent.join(timeout=1)
+        self.assertEqual(len(self.bridge.handicap_contracts_queue), 0)
+
+
+class BrigdePrepairContracts(BaseBridgeTest):
+    handicap_contracts_queue = test_handicap_contracts_queue
+
+    def exception_error(self, id):
+        raise Exception('error in prepare_contract_data')
+
+    def test_prepare_contract_data(self):
+        self.assertEqual(len(self.bridge.handicap_contracts_queue), 2)
+        self.bridge.client = Mock(extract_credentials=lambda tender_id: Munch({'data': Munch({'id': tender_id,
+                                                                                              'mode': 'mode for test',
+                                                                                              'owner': [x.owner for x in test_tender_data_with_contracts if x.id == tender_id][0],
+                                                                                              'tender_token': databridge.uuid4().hex})}))
+        prepare_contract_data_gevent = gevent.spawn(self.bridge.prepare_contract_data)
+        prepare_contract_data_gevent.join(timeout=1)
+        self.assertEqual(len(self.bridge.contracts_put_queue), 2)
+
+    def test_prepare_contract_data_except(self):
+        self.assertEqual(len(self.bridge.handicap_contracts_queue), 2)
+        self.bridge.client = Mock(extract_credentials=self.exception_error)
+        prepare_contract_data_gevent = gevent.spawn(self.bridge.prepare_contract_data)
+        prepare_contract_data_gevent.join(timeout=2)
+        self.assertEqual(len(self.bridge.handicap_contracts_queue), 1)
+        self.assertEqual(len(self.bridge.contracts_put_queue), 0)
+
+
+class BridgePutContracts(BaseBridgeTest):
+    contracts_put_queue = test_contracts_data
+
+    def test_put_contracts(self):
+        self.bridge.contracting_client = Mock(create_contract=Mock(return_value="Contract created"))
+        put_contracts_gevent = gevent.spawn(self.bridge.put_contracts)
+        put_contracts_gevent.join(timeout=1)
+        self.assertEqual(len(self.bridge.contracts_put_queue), 0)
+
+    def test_put_contracts_exception(self):
+        self.bridge.contracting_client = Mock(create_contract='error')
+        put_contracts_gevent = gevent.spawn(self.bridge.put_contracts)
+        put_contracts_gevent.join(timeout=1)
+        self.assertEqual(len(self.bridge.contracts_put_queue), 0)
+        self.assertEqual(len(self.bridge.contracts_retry_put_queue), 2)
+
+
+class BridgePutContractsRetry(BaseBridgeTest):
+    contracts_retry_put_queue = test_contracts_data
+
+    def test_retry_put_contract(self):
+        self.assertEqual(len(self.bridge.contracts_retry_put_queue), 2)
+        self.bridge.contracting_client = Mock(create_contract=Mock(return_value="Contract created"))
+        retry_put_contracts_gevent = gevent.spawn(self.bridge.retry_put_contracts)
+        retry_put_contracts_gevent.join(timeout=1)
+        self.assertEqual(len(self.bridge.contracts_retry_put_queue), 0)
+
+    def test_retry_put_contract_exc(self):
+        self.assertEqual(len(self.bridge.contracts_retry_put_queue), 2)
+        self.bridge.contracting_client = Mock(create_contract='error')
+        retry_put_contracts_gevent = gevent.spawn(self.bridge.retry_put_contracts)
+        retry_put_contracts_gevent.join(timeout=1)
+        self.assertEqual(len(self.bridge.contracts_retry_put_queue), 2)
 
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(BridgeTest))
+    suite.addTest(unittest.makeSuite(BaseBridgeTest))
     return suite
 
 
