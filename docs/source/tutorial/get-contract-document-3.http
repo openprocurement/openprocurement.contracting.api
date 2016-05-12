@@ -1,4 +1,4 @@
-GET /api/2.3/contracts/7d43086cb00145c2a1fa686cedc49b33/documents/dfc79dc058f24c33a6a6820ebe44a384?acc_token=f29bb9b5198a4f8e8874ffd88e46d620 HTTP/1.0
+GET /api/2.3/contracts/2b96ac8412b94512a3db4613143b7150/documents/17637852feb34b008ccbb85e1d1670f2?acc_token=df4891826c6d4e4eabd56e02b6540e49 HTTP/1.0
 Authorization: Basic YnJva2VyOg==
 Host: api-sandbox.openprocurement.org
 
@@ -6,24 +6,24 @@ Response: 200 OK
 Content-Type: application/json; charset=UTF-8
 {
   "data": {
-    "title": "contract_update.doc", 
-    "url": "http://api-sandbox.openprocurement.org/api/2.3/contracts/7d43086cb00145c2a1fa686cedc49b33/documents/dfc79dc058f24c33a6a6820ebe44a384?download=083ae815e3bc40f797afe60eaac3d841", 
+    "title": "contract_additional_docs.doc", 
+    "url": "http://api-sandbox.openprocurement.org/api/2.3/contracts/2b96ac8412b94512a3db4613143b7150/documents/17637852feb34b008ccbb85e1d1670f2?download=df1c91a1db17495fa41ec37d62a4e31d", 
     "format": "application/msword", 
     "documentOf": "tender", 
-    "datePublished": "2016-04-28T17:14:03.239503+03:00", 
+    "datePublished": "2016-05-10T20:18:01.939029+03:00", 
     "previousVersions": [
       {
-        "title": "contract_update.doc", 
-        "url": "/contracts/7d43086cb00145c2a1fa686cedc49b33/documents/dfc79dc058f24c33a6a6820ebe44a384?download=473d0a5033d74c189d3ea0a7ba6ff5bd", 
+        "title": "contract_additional_docs.doc", 
+        "url": "/contracts/2b96ac8412b94512a3db4613143b7150/documents/17637852feb34b008ccbb85e1d1670f2?download=34a6e90292ea4145980c9f0515a118c8", 
         "format": "application/msword", 
         "documentOf": "tender", 
-        "datePublished": "2016-04-28T17:14:03.239503+03:00", 
-        "id": "dfc79dc058f24c33a6a6820ebe44a384", 
-        "dateModified": "2016-04-28T17:14:03.239544+03:00"
+        "datePublished": "2016-05-10T20:18:01.939029+03:00", 
+        "id": "17637852feb34b008ccbb85e1d1670f2", 
+        "dateModified": "2016-05-10T20:18:01.939068+03:00"
       }
     ], 
-    "id": "dfc79dc058f24c33a6a6820ebe44a384", 
-    "dateModified": "2016-04-28T17:14:03.365355+03:00"
+    "id": "17637852feb34b008ccbb85e1d1670f2", 
+    "dateModified": "2016-05-10T20:18:02.060127+03:00"
   }
 }
 

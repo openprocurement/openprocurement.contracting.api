@@ -2,6 +2,7 @@
 import json
 import os
 from datetime import timedelta
+from copy import deepcopy
 
 from openprocurement.api.models import get_now
 import openprocurement.contracting.api.tests.base as base_test
@@ -9,7 +10,6 @@ from openprocurement.api.tests.base import PrefixedRequestClass, BaseTenderWebTe
 from openprocurement.contracting.api.tests.base import test_contract_data
 from webtest import TestApp
 from openprocurement.api.tests.base import test_tender_data, test_organization
-
 
 
 class DumpsTestAppwebtest(TestApp):
@@ -113,12 +113,6 @@ class TenderResourceTest(BaseTenderWebTest):
             response = self.app.get('/tenders/{}/contracts/{}'.format(tender_id, response.json['data']['contracts'][0]['id']))
         test_contract_data = response.json['data']
 
-        self.app.authorization = ('Basic', ('contracting', ''))
-        response = self.app.get('/tenders/{}/extract_credentials'.format(tender_id))
-        test_contract_data['owner'] = response.json['data']['owner']
-        test_contract_data['tender_token'] = response.json['data']['tender_token']
-        test_contract_data['tender_id'] = tender_id
-
         request_path = '/contracts'
         #### Exploring basic rules
         #
@@ -129,62 +123,114 @@ class TenderResourceTest(BaseTenderWebTest):
             self.assertEqual(response.status, '200 OK')
             self.app.file_obj.write("\n")
 
-        #### Sync contract
+        #### Sync contract (i.e. simulate contracting databridge sync actions)
         #
         self.app.authorization = ('Basic', ('contracting', ''))
 
-        with open('docs/source/tutorial/contract-create.http', 'w') as self.app.file_obj:
-            response = self.app.post_json(request_path, {"data": test_contract_data})
-            self.assertEqual(response.status, '201 Created')
+        response = self.app.get('/tenders/{}/extract_credentials'.format(tender_id))
+        test_contract_data['owner'] = response.json['data']['owner']
+        test_contract_data['tender_token'] = response.json['data']['tender_token']
+        test_contract_data['tender_id'] = tender_id
+        test_contract_data['procuringEntity'] = tender['procuringEntity']
+        del test_contract_data['status']
 
-        self.app.authorization = ('Basic', ('broker', ''))
+        response = self.app.post_json(request_path, {"data": test_contract_data})
+        self.assertEqual(response.status, '201 Created')
+        self.assertEqual(response.json['data']['status'], 'draft')
+
+        # Getting contract
+        self.app.authorization = None
 
         with open('docs/source/tutorial/contract-view.http', 'w') as self.app.file_obj:
             response = self.app.get('/contracts/{}'.format(test_contract_data['id']))
             self.assertEqual(response.status, '200 OK')
+            contract = response.json['data']
+            self.assertEqual(contract['status'], 'draft')
 
-
-
-        with open('docs/source/tutorial/contracts-listing-1.http', 'w') as self.app.file_obj:
-            self.app.authorization = None
-            response = self.app.get(request_path)
-            self.assertEqual(response.status, '200 OK')
-
+        # Getting access
         self.app.authorization = ('Basic', ('broker', ''))
-
         with open('docs/source/tutorial/contract-credentials.http', 'w') as self.app.file_obj:
             response = self.app.patch_json('/contracts/{}/credentials?acc_token={}'.format(test_contract_data['id'], owner_token))
             self.assertEqual(response.status, '200 OK')
         contract_token = response.json['access']['token']
         contract_id = test_contract_data['id']
 
+        with open('docs/source/tutorial/contracts-listing-1.http', 'w') as self.app.file_obj:
+            response = self.app.get(request_path)
+            self.assertEqual(response.status, '200 OK')
+            self.assertEqual(len(response.json['data']), 0)
+
+        # Contract activation
+        with open('docs/source/tutorial/contract-activation.http', 'w') as self.app.file_obj:
+            response = self.app.patch_json('/contracts/{}?acc_token={}'.format(contract_id, contract_token),
+                                           {"data": {"status": "active"}})
+            self.assertEqual(response.status, '200 OK')
+
+        with open('docs/source/tutorial/contracts-listing-2.http', 'w') as self.app.file_obj:
+            response = self.app.get(request_path)
+            self.assertEqual(response.status, '200 OK')
+            self.assertEqual(len(response.json['data']), 1)
+
+        # Modifying contract
+        with open('docs/source/tutorial/contracts-patch.http', 'w') as self.app.file_obj:
+            custom_period_start_date = get_now().isoformat()
+            custom_period_end_date = (get_now() + timedelta(days=30)).isoformat()
+            response = self.app.patch_json('/contracts/{}?acc_token={}'.format(contract_id, contract_token),
+                                           {"data": {"value": {"amount": 438},
+                                                     "period": {'startDate': custom_period_start_date,
+                                                                'endDate': custom_period_end_date}}})
+            self.assertEqual(response.status, '200 OK')
+
+        # add item
+        with open('docs/source/tutorial/add-contract-item.http', 'w') as self.app.file_obj:
+            item = deepcopy(response.json['data']['items'][0])
+            del item['id']
+            item["description"] = u"коробки для футлярів до державних нагород"
+            response = self.app.patch_json('/contracts/{}?acc_token={}'.format(contract_id, contract_token),
+                                           {"data": {"items": [{}, item]}})
+            self.assertEqual(response.status, '200 OK')
+            self.assertEqual(len(response.json['data']['items']), 2)
+
+        # update item
+        with open('docs/source/tutorial/update-contract-item.http', 'w') as self.app.file_obj:
+            response = self.app.patch_json('/contracts/{}?acc_token={}'.format(contract_id, contract_token),
+                                           {"data": {"items": [{}, {'quantity': 2}]}, })
+            self.assertEqual(response.status, '200 OK')
+            item2 = response.json['data']['items'][1]
+            self.assertEqual(item2['quantity'], 2)
+
+        # delete item
+        with open('docs/source/tutorial/delete-contract-item.http', 'w') as self.app.file_obj:
+            response = self.app.patch_json('/contracts/{}?acc_token={}'.format(contract_id, contract_token),
+                                           {"data": {"items": [item2]}, })
+            self.assertEqual(response.status, '200 OK')
+            self.assertEqual(len(response.json['data']['items']), 1)
+
+        # Uploading documentation
+        with open('docs/source/tutorial/upload-contract-document.http', 'w') as self.app.file_obj:
+            response = self.app.post('/contracts/{}/documents?acc_token={}'.format(
+                                     contract_id, contract_token), upload_files=[('file', u'contract.doc', 'content')])
 
         with open('docs/source/tutorial/contract-documents.http', 'w') as self.app.file_obj:
             response = self.app.get('/contracts/{}/documents?acc_token={}'.format(
                                      contract_id, contract_token))
 
-        with open('docs/source/tutorial/upload-contract-document.http', 'w') as self.app.file_obj:
-            response = self.app.post('/contracts/{}/documents?acc_token={}'.format(
-                                     contract_id, contract_token), upload_files=[('file', u'contract.doc', 'content')])
-
         with open('docs/source/tutorial/upload-contract-document-2.http', 'w') as self.app.file_obj:
             response = self.app.post('/contracts/{}/documents?acc_token={}'.format(
-                                     contract_id, contract_token), upload_files=[('file', u'contract_update.doc', 'content')])
+                                     contract_id, contract_token), upload_files=[('file', u'contract_additional_docs.doc', 'additional info')])
 
         doc_id = response.json['data']['id']
 
         with open('docs/source/tutorial/upload-contract-document-3.http', 'w') as self.app.file_obj:
-
             response = self.app.put('/contracts/{}/documents/{}?acc_token={}'.format(
                                     contract_id, doc_id, contract_token),
-                                    upload_files=[('file', 'contract_update.doc', 'content2')])
+                                    upload_files=[('file', 'contract_additional_docs.doc', 'extended additional info')])
 
         with open('docs/source/tutorial/get-contract-document-3.http', 'w') as self.app.file_obj:
-
             response = self.app.get('/contracts/{}/documents/{}?acc_token={}'.format(contract_id, doc_id, contract_token))
 
-        with open('docs/source/tutorial/contracts-patch.http', 'w') as self.app.file_obj:
+        # Finalize contract
+        with open('docs/source/tutorial/contract-termination.http', 'w') as self.app.file_obj:
             response = self.app.patch_json('/contracts/{}?acc_token={}'.format(contract_id, contract_token),
-                                           {"data": {"title": "New Title"}})
+                                           {"data": {"status": "terminated"}})
             self.assertEqual(response.status, '200 OK')
-            self.assertEqual(response.json['data']['title'], "New Title")

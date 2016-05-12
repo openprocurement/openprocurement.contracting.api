@@ -33,10 +33,14 @@ Contract in the tender system
 .. include:: tutorial/example_contract.http
    :code:
 
+*Contract id is the same in both tender and contract system.*
+
 Let's access the URL of the created object:
 
 .. include:: tutorial/contract-view.http
    :code:
+
+Note that contract is created in ``draft`` status.
 
 Getting access
 --------------
@@ -54,14 +58,27 @@ Response will contain ``access.token`` for the contract that can be used for fur
 .. include:: tutorial/contract-credentials.http
    :code:
 
-Let's see what listing of contracts reveals us:
+Contracts in ``draft`` status are not visible in listings.
 
 .. include:: tutorial/contracts-listing-1.http
    :code:
 
+Contract should be ``active`` to become available in listings.
+
+Contract activation
+-------------------
+Before any contract modification you have to activate contract.
+
+.. include:: tutorial/contract-activation.http
+   :code:
+
+Let's see what listing of contracts reveals us:
+
+.. include:: tutorial/contracts-listing-2.http
+   :code:
+
 We do see the internal `id` of a contract (that can be used to construct full URL by prepending `http://api-sandbox.openprocurement.org/api/0/contracts/`) and its `dateModified` datestamp.
 
-*Contract id is the same in both tender and contract system.*
 
 Modifying contract
 ------------------
@@ -72,6 +89,24 @@ Let's update contract by supplementing it with all other essential properties.
    :code:
 
 We see the added properties have merged with existing contract data. Additionally, the `dateModified` property was updated to reflect the last modification datestamp.
+
+Fields that can be modified: `title`, `description`, `status`, `value.amount`, `period`, `items`.
+
+Add item:
+
+.. include:: tutorial/add-contract-item.http
+   :code:
+
+Update item:
+
+.. include:: tutorial/update-contract-item.http
+   :code:
+
+Delete item:
+
+.. include:: tutorial/delete-contract-item.http
+   :code:
+
 
 Uploading documentation
 -----------------------
@@ -107,3 +142,12 @@ And we can see that it is overriding the original version:
 
 .. index:: Enquiries, Question, Answer
 
+Completing contract
+-------------------
+
+Contract can be completed by switching to ``terminated`` status.
+
+.. include:: tutorial/contract-termination.http
+   :code:
+
+Any future modification to the contract are not allowed.

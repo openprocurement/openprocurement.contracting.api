@@ -1,12 +1,25 @@
-GET /api/2.3/tenders/1dba363f861a402d89a1db556b684e0a/contracts/2b96ac8412b94512a3db4613143b7150 HTTP/1.0
+PATCH /api/2.3/contracts/2b96ac8412b94512a3db4613143b7150?acc_token=df4891826c6d4e4eabd56e02b6540e49 HTTP/1.0
 Authorization: Basic YnJva2VyOg==
+Content-Length: 30
+Content-Type: application/json
 Host: api-sandbox.openprocurement.org
+DATA:
+{
+  "data": {
+    "status": "active"
+  }
+}
 
 Response: 200 OK
 Content-Type: application/json; charset=UTF-8
 {
   "data": {
     "status": "active", 
+    "value": {
+      "currency": "UAH", 
+      "amount": 500.0, 
+      "valueAddedTaxIncluded": true
+    }, 
     "items": [
       {
         "description": "футляри до державних нагород", 
@@ -62,15 +75,33 @@ Content-Type: application/json; charset=UTF-8
         }
       }
     ], 
-    "value": {
-      "currency": "UAH", 
-      "amount": 500.0, 
-      "valueAddedTaxIncluded": true
-    }, 
     "dateSigned": "2016-05-10T20:18:00.261487+03:00", 
+    "dateModified": "2016-05-10T20:18:00.847267+03:00", 
+    "procuringEntity": {
+      "contactPoint": {
+        "name": "Державне управління справами", 
+        "telephone": "0440000000"
+      }, 
+      "identifier": {
+        "scheme": "UA-EDR", 
+        "id": "00037256", 
+        "uri": "http://www.dus.gov.ua/"
+      }, 
+      "name": "Державне управління справами", 
+      "kind": "general", 
+      "address": {
+        "postalCode": "01220", 
+        "countryName": "Україна", 
+        "streetAddress": "вул. Банкова, 11, корпус 1", 
+        "region": "м. Київ", 
+        "locality": "м. Київ"
+      }
+    }, 
+    "contractID": "UA-2016-05-10-000001-1", 
+    "owner": "broker", 
     "awardID": "23c3dd35c91842c3940b829b7ed8d663", 
     "id": "2b96ac8412b94512a3db4613143b7150", 
-    "contractID": "UA-2016-05-10-000001-1"
+    "tender_id": "1dba363f861a402d89a1db556b684e0a"
   }
 }
 
