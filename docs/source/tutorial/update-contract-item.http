@@ -1,18 +1,17 @@
 PATCH /api/2.3/contracts/61e18d8bf0684f9ea5a7458f8a9059a7?acc_token=36e988b25a144175b8e88bafa299a701 HTTP/1.0
 Authorization: Basic YnJva2VyOg==
-Content-Length: 144
+Content-Length: 42
 Content-Type: application/json
 Host: api-sandbox.openprocurement.org
 DATA:
 {
   "data": {
-    "period": {
-      "startDate": "2016-05-13T20:19:26.877807+03:00", 
-      "endDate": "2016-06-12T20:19:26.877846+03:00"
-    }, 
-    "value": {
-      "amount": 438
-    }
+    "items": [
+      {}, 
+      {
+        "quantity": 2
+      }
+    ]
   }
 }
 
@@ -58,6 +57,38 @@ Content-Type: application/json; charset=UTF-8
           "name": "item"
         }, 
         "quantity": 5
+      }, 
+      {
+        "description": "коробки для футлярів до державних нагород", 
+        "classification": {
+          "scheme": "CPV", 
+          "description": "Cartons", 
+          "id": "44617100-9"
+        }, 
+        "additionalClassifications": [
+          {
+            "scheme": "ДКПП", 
+            "id": "17.21.1", 
+            "description": "папір і картон гофровані, паперова й картонна тара"
+          }
+        ], 
+        "deliveryAddress": {
+          "postalCode": "79000", 
+          "countryName": "Україна", 
+          "streetAddress": "вул. Банкова 1", 
+          "region": "м. Київ", 
+          "locality": "м. Київ"
+        }, 
+        "deliveryDate": {
+          "startDate": "2016-05-15T20:19:18.837510+03:00", 
+          "endDate": "2016-05-18T20:19:18.837510+03:00"
+        }, 
+        "id": "6cc8a021656645f9a087023274d6d9be", 
+        "unit": {
+          "code": "44617100-9", 
+          "name": "item"
+        }, 
+        "quantity": 2
       }
     ], 
     "suppliers": [
@@ -110,7 +141,7 @@ Content-Type: application/json; charset=UTF-8
     "contractID": "UA-2016-05-13-000001-1", 
     "owner": "broker", 
     "awardID": "871852e8574b4cf8bce1ad59698ac87f", 
-    "dateModified": "2016-05-13T20:19:27.001559+03:00", 
+    "dateModified": "2016-05-13T20:19:27.283895+03:00", 
     "tender_id": "81127431444c4e9b88f913960334f3a8"
   }
 }

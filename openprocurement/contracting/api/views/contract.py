@@ -198,15 +198,15 @@ class ContractResource(ContractsResource):
                 self.request.errors.add('body', 'data', 'Can\'t update contract status')
                 self.request.errors.status = 403
                 return
-        elif contract.status != 'active':
+        elif self.request.authenticated_role != 'Administrator' and contract.status != 'active':
             self.request.errors.add('body', 'data', 'Can\'t update contract in current ({}) status'.format(contract.status))
             self.request.errors.status = 403
             return
 
-        apply_patch(self.request, src=self.request.validated['contract_src'])
-        self.LOGGER.info('Updated contract {}'.format(contract.id),
-                         extra=context_unpack(self.request, {'MESSAGE_ID': 'contract_patch'}))
-        return {'data': contract.serialize('view')}
+        if apply_patch(self.request, src=self.request.validated['contract_src']):
+            self.LOGGER.info('Updated contract {}'.format(contract.id),
+                            extra=context_unpack(self.request, {'MESSAGE_ID': 'contract_patch'}))
+            return {'data': contract.serialize('view')}
 
 
 @contractingresource(name='Contract credentials',
