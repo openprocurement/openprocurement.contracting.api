@@ -92,17 +92,19 @@ We see the added properties have merged with existing contract data. Additionall
 
 Fields that can be modified: `title`, `description`, `status`, `value.amount`, `period`, `items`.
 
-Add item:
+See examples of `items` customization below. You can:
+
+* add item:
 
 .. include:: tutorial/add-contract-item.http
    :code:
 
-Update item:
+* update item:
 
 .. include:: tutorial/update-contract-item.http
    :code:
 
-Delete item:
+* delete item:
 
 .. include:: tutorial/delete-contract-item.http
    :code:
@@ -142,6 +144,59 @@ And we can see that it is overriding the original version:
 
 .. index:: Enquiries, Question, Answer
 
+
+Submitting contract change
+--------------------------
+
+You can make changes to the contract in cases described in the 4th part of Article 36 of the Law "On the Public Procurement". 
+
+All changes are processed by the endpoint `/contracts/{id}/changes`.
+
+`Change` is a submit of new `Change` object to the `changes` container. 
+
+Required field: ``rationale``.
+
+.. include:: tutorial/add-contract-change.http
+   :code:
+
+You can view the `change`:
+
+.. :code:
+
+`Change` can be modified while it is in the ``pending`` status:
+   
+.. include:: tutorial/patch-contract-change.http
+   :code:
+
+Document can be added only while `change` is in the ``pending`` status.
+
+Document has to be added in two stages:
+
+1) add document
+  
+.. include:: tutorial/add-contract-change-document.http
+   :code:
+
+
+2) add connection to the `change`:
+ 
+      ``"documentOf": "change"``
+      
+      ``"relatedItem": "{change.id}"``
+
+.. :code:
+
+`Change` has to be applied by switching to the ``active`` status. After this `change` can't be modified anymore.
+   
+.. include:: tutorial/apply-contract-change.http
+   :code:
+
+You can view all changes:
+
+.. :code:
+
+All changes are present on the contract view.
+   
 Completing contract
 -------------------
 

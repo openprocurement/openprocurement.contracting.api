@@ -100,6 +100,7 @@ class ContractDocumentResourceTest(BaseContractContentWebTest):
         doc_id = response.json["data"]['id']
         self.assertIn(doc_id, response.headers['Location'])
         self.assertEqual(u'укр.doc', response.json["data"]["title"])
+        self.assertEqual(response.json["data"]["documentOf"], "contract")
         key = response.json["data"]["url"].split('?')[-1].split('=')[-1]
 
         response = self.app.get('/contracts/{}/documents'.format(self.contract_id))
@@ -296,6 +297,7 @@ class ContractDocumentResourceTest(BaseContractContentWebTest):
         doc_id = response.json["data"]['id']
         self.assertIn(doc_id, response.headers['Location'])
         self.assertEqual(u'укр.doc', response.json["data"]["title"])
+        self.assertEqual(response.json["data"]["documentOf"], "contract")
         self.assertNotIn("documentType", response.json["data"])
 
         response = self.app.patch_json('/contracts/{}/documents/{}?acc_token={}'.format(self.contract_id, doc_id, self.contract_token), {"data": {
@@ -333,6 +335,63 @@ class ContractDocumentResourceTest(BaseContractContentWebTest):
         self.assertEqual(response.status, '403 Forbidden')
         self.assertEqual(response.json['errors'], [{u'description': u"Can't update document in current (terminated) contract status",
                                                     u'location': u'body', u'name': u'data'}])
+
+    def test_contract_change_document(self):
+        response = self.app.patch_json('/contracts/{}?acc_token={}'.format(self.contract_id, self.contract_token),
+                                       {"data": {"status": "active"}})
+        self.assertEqual(response.status, '200 OK')
+
+        response = self.app.post('/contracts/{}/documents?acc_token={}'.format(
+            self.contract_id, self.contract_token), upload_files=[('file', str(Header(u'укр.doc', 'utf-8')), 'content')])
+        self.assertEqual(response.status, '201 Created')
+        self.assertEqual(response.content_type, 'application/json')
+        doc_id = response.json["data"]['id']
+        self.assertIn(doc_id, response.headers['Location'])
+        self.assertEqual(u'укр.doc', response.json["data"]["title"])
+        self.assertEqual(response.json["data"]["documentOf"], "contract")
+        self.assertNotIn("documentType", response.json["data"])
+
+        response = self.app.patch_json('/contracts/{}/documents/{}?acc_token={}'.format(self.contract_id, doc_id, self.contract_token), {"data": {
+            "documentOf": "change",
+            "relatedItem": '1234' * 8,
+        }}, status=422)
+        self.assertEqual(response.status, '422 Unprocessable Entity')
+        self.assertEqual(response.json['errors'], [
+            {"location": "body", "name": "relatedItem", "description": ["relatedItem should be one of changes"]}])
+
+        response = self.app.post_json('/contracts/{}/changes?acc_token={}'.format(self.contract['id'], self.contract_token),
+                                      {'data': {'rationale': u'причина зміни укр',
+                                                'rationale_en': 'change cause en'}})
+        self.assertEqual(response.status, '201 Created')
+        self.assertEqual(response.content_type, 'application/json')
+        change = response.json['data']
+
+        response = self.app.patch_json('/contracts/{}/documents/{}?acc_token={}'.format(self.contract_id, doc_id, self.contract_token), {"data": {
+            "documentOf": "change",
+            "relatedItem": change['id'],
+        }})
+        self.assertEqual(response.status, '200 OK')
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(doc_id, response.json["data"]["id"])
+        self.assertEqual(response.json["data"]["documentOf"], 'change')
+        self.assertEqual(response.json["data"]["relatedItem"], change['id'])
+
+        response = self.app.patch_json('/contracts/{}/changes/{}?acc_token={}'.format(self.contract['id'], change['id'], self.contract_token),
+                                        {'data': {'status': 'active'}})
+        self.assertEqual(response.status, '200 OK')
+
+        response = self.app.post('/contracts/{}/documents?acc_token={}'.format(
+            self.contract_id, self.contract_token), upload_files=[('file', str(Header(u'укр2.doc', 'utf-8')), 'content2')])
+        self.assertEqual(response.status, '201 Created')
+        doc_id = response.json["data"]['id']
+
+        response = self.app.patch_json('/contracts/{}/documents/{}?acc_token={}'.format(self.contract_id, doc_id, self.contract_token), {"data": {
+            "documentOf": "change",
+            "relatedItem": change['id'],
+        }}, status=403)
+        self.assertEqual(response.status, '403 Forbidden')
+        self.assertEqual(response.json['errors'], [
+            {"location": "body", "name": "data", "description": "Can't add document to 'active' change"}])
 
 class ContractDocumentWithS3ResourceTest(ContractDocumentResourceTest):
     s3_connection = True
