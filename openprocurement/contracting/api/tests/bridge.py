@@ -7,17 +7,14 @@ from openprocurement.contracting.api import databridge
 from mock import Mock
 from munch import munchify
 import gevent
-from gevent.queue import Queue
-
-#os.path.join("f", "a")
-#import pdb; pdb.set_trace()
 
 PATH = os.path.join(os.path.dirname(__file__), "data")
-with open(os.path.join(PATH, "queue_data.json")) as qd, open(os.path.join(PATH, "tender_data.json")) as td:
+with open(os.path.join(PATH, "queue_data.json")) as qd, open(os.path.join(PATH, "tender_data.json")) as td, open(os.path.join(PATH, "test_tender_full_data.json")) as tfd:
     queues = load(qd)
     tenders = load(td)
+    database = load(tfd)
 
-test_tender_data_with_contracts = munchify(tenders['test_tender_data_with_contracts'])
+test_tender_data_with_contracts = database
 test_tenders_data = munchify(tenders['test_tenders_data'])
 test_contracts_data_queue = munchify(queues['test_contracts_data_queue'])
 test_tenders_queue = munchify(queues['test_tenders_queue'])
@@ -25,7 +22,6 @@ test_handicap_contracts_queue = munchify(queues['test_handicap_contracts_queue']
 
 databridge.ContractingClient = Mock()
 databridge.TendersClient = Mock()
-
 
 
 class BaseBridgeTest(unittest.TestCase):
@@ -42,10 +38,14 @@ class BaseBridgeTest(unittest.TestCase):
                                 "contracting_api_version": "0",
                                 "api_token": "contracting"}}
 
+        def get_tender(id):
+            data = database.get(id)
+            data.update({"id": id})
+            return munchify({"data": data})
         self.bridge = databridge.ContractingDataBridge(self.config)
         self.bridge.tenders_client_backward = Mock(get_tenders=Mock(return_value=test_tenders_data),
                                                    headers={"X-Client-Request-ID": ""},
-                                                   get_tender=lambda id: munchify({"data": [tender for tender in test_tender_data_with_contracts if id in tender.values()][0]}))
+                                                   get_tender=get_tender)
         self.bridge.tenders_client_forward = Mock(get_tenders=Mock(return_value=test_tenders_data[0:6]))
         self.bridge.tenders_queue.queue.extend(self.tenders_queue)
         self.bridge.handicap_contracts_queue.queue.extend(self.handicap_contracts_queue)
@@ -61,11 +61,11 @@ class BridgeBackward(BaseBridgeTest):
     def test_get_tenders_contract_backward(self):
         backward_gevent = gevent.spawn(self.bridge.get_tender_contracts_backward)
         backward_gevent.join(timeout=1)
-        self.assertEqual(self.bridge.tenders_queue.get()['id'], test_tenders_data[1]['id'])
-        self.assertEqual(self.bridge.tenders_queue.get()['id'], test_tenders_data[2]['id'])
-        self.assertEqual(self.bridge.tenders_queue.get()['id'], test_tenders_data[5]['id'])
-        self.assertEqual(self.bridge.tenders_queue.get()['id'], test_tenders_data[6]['id'])
-        self.assertEqual(self.bridge.tenders_queue.get()['id'], test_tenders_data[7]['id'])
+        self.assertIn(self.bridge.tenders_queue.get()['id'], database.keys())
+        self.assertIn(self.bridge.tenders_queue.get()['id'], database.keys())
+        self.assertIn(self.bridge.tenders_queue.get()['id'], database.keys())
+        self.assertIn(self.bridge.tenders_queue.get()['id'], database.keys())
+        self.assertIn(self.bridge.tenders_queue.get()['id'], database.keys())
 
 
 class BridgeForward(BaseBridgeTest):
@@ -73,9 +73,9 @@ class BridgeForward(BaseBridgeTest):
     def test_get_tenders_contract_forward(self):
         forward_gevent = gevent.spawn(self.bridge.get_tender_contracts_forward)
         forward_gevent.join(timeout=1)
-        self.assertEqual(self.bridge.tenders_queue.get()['id'], test_tenders_data[1]['id'])
-        self.assertEqual(self.bridge.tenders_queue.get()['id'], test_tenders_data[2]['id'])
-        self.assertEqual(self.bridge.tenders_queue.get()['id'], test_tenders_data[5]['id'])
+        self.assertIn(self.bridge.tenders_queue.get()['id'], database.keys())
+        self.assertIn(self.bridge.tenders_queue.get()['id'], database.keys())
+        self.assertIn(self.bridge.tenders_queue.get()['id'], database.keys())
 
 
 class BridgeGetContracts(BaseBridgeTest):
@@ -88,8 +88,8 @@ class BridgeGetContracts(BaseBridgeTest):
         self.bridge.contracting_client = Mock(get_contract=self.resourse_error)
         get_tender_contracts_gevent = gevent.spawn(self.bridge.get_tender_contracts)
         get_tender_contracts_gevent.join(timeout=1)
-        self.assertEqual(self.bridge.handicap_contracts_queue.get()['id'], test_tender_data_with_contracts[0]['contracts'][0]['id'])
-        self.assertEqual(self.bridge.handicap_contracts_queue.get()['id'], test_tender_data_with_contracts[1]['contracts'][0]['id'])
+        self.assertEqual(self.bridge.handicap_contracts_queue.peek()['id'], database[self.bridge.handicap_contracts_queue.get()['tender_id']]['contracts'][0]['id'])
+        self.assertEqual(self.bridge.handicap_contracts_queue.peek()['id'], database[self.bridge.handicap_contracts_queue.get()['tender_id']]['contracts'][0]['id'])
 
     def test_get_tender_exist_contracts(self):
         self.bridge.contracting_client = Mock(get_contract=Mock())
@@ -106,18 +106,18 @@ class BrigdePrepairContracts(BaseBridgeTest):
     def test_prepare_contract_data(self):
         self.bridge.client = Mock(extract_credentials=lambda tender_id: munchify({"data": {"id": tender_id,
                                                                                            "mode": "mode for test",
-                                                                                           "owner": [x.owner for x in test_tender_data_with_contracts if x.id == tender_id][0],
+                                                                                           "owner": database[tender_id]['owner'],
                                                                                            "tender_token": databridge.uuid4().hex}}))
         prepare_contract_data_gevent = gevent.spawn(self.bridge.prepare_contract_data)
         prepare_contract_data_gevent.join(timeout=1)
-        self.assertEqual(self.bridge.contracts_put_queue.get()['owner'], test_tender_data_with_contracts[0]['owner'])
-        self.assertEqual(self.bridge.contracts_put_queue.get()['owner'], test_tender_data_with_contracts[1]['owner'])
+        self.assertEqual(self.bridge.contracts_put_queue.peek()['owner'], database[self.bridge.contracts_put_queue.get()['tender_id']]['owner'])
+        self.assertEqual(self.bridge.contracts_put_queue.peek()['owner'], database[self.bridge.contracts_put_queue.get()['tender_id']]['owner'])
 
     def test_prepare_contract_data_except(self):
         self.bridge.client = Mock(extract_credentials=self.exception_error)
         prepare_contract_data_gevent = gevent.spawn(self.bridge.prepare_contract_data)
         prepare_contract_data_gevent.join(timeout=2)
-        self.assertEqual(self.bridge.handicap_contracts_queue.get()['id'], test_handicap_contracts_queue[1]['id'])
+        self.assertEqual(self.bridge.handicap_contracts_queue.peek()['id'], database[self.bridge.handicap_contracts_queue.get()['tender_id']]['contracts'][0]['id'])
 
 
 class BridgePutContracts(BaseBridgeTest):
@@ -132,8 +132,8 @@ class BridgePutContracts(BaseBridgeTest):
         self.bridge.contracting_client = Mock(create_contract="error")
         put_contracts_gevent = gevent.spawn(self.bridge.put_contracts)
         put_contracts_gevent.join(timeout=1)
-        self.assertEqual(self.bridge.contracts_retry_put_queue.get()['id'], test_contracts_data_queue[0]['id'])
-        self.assertEqual(self.bridge.contracts_retry_put_queue.get()['id'], test_contracts_data_queue[1]['id'])
+        self.assertEqual(self.bridge.contracts_retry_put_queue.peek()['id'], database[self.bridge.contracts_retry_put_queue.get()['tender_id']]['contracts'][0]['id'])
+        self.assertEqual(self.bridge.contracts_retry_put_queue.peek()['id'], database[self.bridge.contracts_retry_put_queue.get()['tender_id']]['contracts'][0]['id'])
 
 
 class BridgePutContractsRetry(BaseBridgeTest):
@@ -148,13 +148,18 @@ class BridgePutContractsRetry(BaseBridgeTest):
         self.bridge.contracting_client = Mock(create_contract="error")
         retry_put_contracts_gevent = gevent.spawn(self.bridge.retry_put_contracts)
         retry_put_contracts_gevent.join(timeout=1)
-        self.assertEqual(self.bridge.contracts_retry_put_queue.get()['id'], test_contracts_data_queue[0]['id'])
-        self.assertEqual(self.bridge.contracts_retry_put_queue.get()['id'], test_contracts_data_queue[1]['id'])
+        self.assertEqual(self.bridge.contracts_retry_put_queue.peek()['id'], database[self.bridge.contracts_retry_put_queue.get()['tender_id']]['contracts'][0]['id'])
+        self.assertEqual(self.bridge.contracts_retry_put_queue.peek()['id'], database[self.bridge.contracts_retry_put_queue.get()['tender_id']]['contracts'][0]['id'])
 
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(BaseBridgeTest))
+    suite.addTest(unittest.makeSuite(BridgeBackward))
+    suite.addTest(unittest.makeSuite(BridgeForward))
+    suite.addTest(unittest.makeSuite(BridgeGetContracts))
+    suite.addTest(unittest.makeSuite(BrigdePrepairContracts))
+    suite.addTest(unittest.makeSuite(BridgePutContracts))
+    suite.addTest(unittest.makeSuite(BridgePutContractsRetry))
     return suite
 
 
