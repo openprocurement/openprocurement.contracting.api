@@ -207,7 +207,7 @@ class ContractingDataBridge(object):
             logger.info('Backward sync: Put tender to process...')
             self.tenders_queue.put(tender_data)
 
-    def run(self):
+    def run(self, timeout=None):
         try:
             logger.info('Start Contracting Data Bridge')
             self.jobs = [gevent.spawn(self.get_tender_contracts_forward),
@@ -218,7 +218,7 @@ class ContractingDataBridge(object):
                          gevent.spawn(self.retry_put_contracts),
                          ]
 
-            gevent.joinall(self.jobs)
+            gevent.joinall(self.jobs, timeout=timeout)
         except Exception, e:
             logger.exception(e)
             logger.info('Exiting...')
