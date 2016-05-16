@@ -42,8 +42,8 @@ class ContractingDataBridge(object):
         self.config = config
         self.contracting_client = ContractingClient(
             self.config_get('api_token'),
-            host_url=self.config_get('tenders_api_server'),
-            api_version=self.config_get('tenders_api_version')
+            host_url=self.config_get('contracting_api_server'),
+            api_version=self.config_get('contracting_api_version')
         )
         params = {'opt_fields': 'status,lots',
                   'mode': '_all_'}
