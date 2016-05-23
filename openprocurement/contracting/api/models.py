@@ -15,7 +15,8 @@ from openprocurement.api.models import Document as BaseDocument
 from openprocurement.api.models import Organization as BaseOrganization
 from openprocurement.api.models import ContactPoint as BaseContactPoint
 from openprocurement.api.models import Item as BaseItem
-from openprocurement.api.models import (Model, ListType, Revision, Value,
+from openprocurement.api.models import Value as BaseValue
+from openprocurement.api.models import (Model, ListType, Revision,
                                         IsoDateTimeType)
 from openprocurement.api.models import validate_cpv_group, validate_items_uniq
 from openprocurement.api.models import (plain_role, Administrator_role,
@@ -50,6 +51,7 @@ item_edit_role = whitelist(
     'additionalClassifications', 'unit', 'deliveryDate', 'deliveryAddress',
     'deliveryLocation', 'quantity', 'id')
 
+value_edit_role = whitelist('amount')
 
 class IContract(Interface):
     """ Contract marker interface """
@@ -106,6 +108,13 @@ class Item(BaseItem):
     def validate_relatedLot(self, data, relatedLot):
         pass
 
+class Value(BaseValue):
+    class Options:
+        roles = {
+            'edit_active': value_edit_role,
+            'embedded': schematics_embedded_role,
+            'view': schematics_default_role,
+        }
 
 class Change(Model):
     class Options:
@@ -148,8 +157,9 @@ class Contract(SchematicsDocument, BaseContract):
     procuringEntity = ModelType(ProcuringEntity, required=True)  # The entity managing the procurement, which may be different from the buyer who is paying / using the items being procured.
     changes = ListType(ModelType(Change), default=list())
     documents = ListType(ModelType(Document), default=list())
-    amountPaid = ModelType(Value)
+    amountPaid = ModelType(BaseValue)
     terminationDetails = StringType()
+    value = ModelType(Value)
 
     create_accreditation = 3  # TODO
 
