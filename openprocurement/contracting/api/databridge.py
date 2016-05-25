@@ -42,8 +42,8 @@ class ContractingDataBridge(object):
         self.config = config
         self.contracting_client = ContractingClient(
             self.config_get('api_token'),
-            host_url=self.config_get('tenders_api_server'),
-            api_version=self.config_get('tenders_api_version')
+            host_url=self.config_get('contracting_api_server'),
+            api_version=self.config_get('contracting_api_version')
         )
         params = {'opt_fields': 'status,lots',
                   'mode': '_all_'}
@@ -215,21 +215,21 @@ class ContractingDataBridge(object):
             logger.info('Backward sync: Put tender to process...')
             self.tenders_queue.put(tender_data)
 
-    def run(self):
+    def run(self, timeout=None):
         try:
             logger.info('Start Contracting Data Bridge')
-            jobs = [gevent.spawn(self.get_tender_contracts_forward),
-                    gevent.spawn(self.get_tender_contracts_backward),
-                    gevent.spawn(self.get_tender_contracts),
-                    gevent.spawn(self.prepare_contract_data),
-                    gevent.spawn(self.put_contracts),
-                    gevent.spawn(self.retry_put_contracts),
-                    ]
-            gevent.joinall(jobs)
+            self.jobs = [gevent.spawn(self.get_tender_contracts_forward),
+                         gevent.spawn(self.get_tender_contracts_backward),
+                         gevent.spawn(self.get_tender_contracts),
+                         gevent.spawn(self.prepare_contract_data),
+                         gevent.spawn(self.put_contracts),
+                         gevent.spawn(self.retry_put_contracts),
+                         ]
+            gevent.joinall(self.jobs, timeout=timeout)
         except Exception, e:
             logger.exception(e)
             logger.info('Exiting...')
-            gevent.killall(jobs)
+            gevent.killall(self.jobs)
 
 
 def main():
