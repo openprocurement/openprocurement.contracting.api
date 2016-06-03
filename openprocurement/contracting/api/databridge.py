@@ -30,12 +30,19 @@ logger = logging.getLogger("openprocurement.contracting.api.databridge")
 # logger = logging.getLogger(__name__)
 
 
+import percache
+cache = percache.Cache("databridge_cache", livesync=True)
+
+
 def generate_req_id():
     return b'contracting-data-bridge-req-' + str(uuid4()).encode('ascii')
 
 
 class ContractingDataBridge(object):
     """ Contracting Data Bridge """
+
+    def __repr__(self):
+        return "Contracting Data Bridge"
 
     def __init__(self, config):
         super(ContractingDataBridge, self).__init__()
@@ -125,12 +132,30 @@ class ContractingDataBridge(object):
             logger.debug('{} {}'.format(direction, params))
             response = self.tenders_sync_client.sync_tenders(params, extra_headers={'X-Client-Request-ID': generate_req_id()})
 
+    @cache
+    def _get_tender(self, tender):
+        tender = self.tenders_sync_client.get_tender(tender['id'],
+                                                     extra_headers={'X-Client-Request-ID': generate_req_id()})['data']
+        return tender
+
+    @cache
+    def _get_contract(self, contract_id):
+        try:
+            self.contracting_client.get_contract(contract_id)
+        except:
+            raise  # do not cache missing contract status
+        else:
+            return True  # contract exists
+
     def get_tender_contracts(self):
         while True:
             try:
                 tender_to_sync = self.tenders_queue.get()
-                tender = self.tenders_sync_client.get_tender(tender_to_sync['id'],
-                                                             extra_headers={'X-Client-Request-ID': generate_req_id()})['data']
+                # tender = self.tenders_sync_client.get_tender(tender_to_sync['id'],
+                                                             # extra_headers={'X-Client-Request-ID': generate_req_id()})['data']
+                tender = self._get_tender({'id': tender_to_sync['id'],
+                                           'status': tender_to_sync['status'],
+                                           'dateModified': tender_to_sync['dateModified']})
             except Exception, e:
                 logger.exception(e)
                 logger.info('Put tender {} back to tenders queue'.format(tender_to_sync['id']))
@@ -141,8 +166,10 @@ class ContractingDataBridge(object):
                     continue
                 for contract in tender['contracts']:
                     if contract["status"] == "active":
+
                         try:
-                            self.contracting_client.get_contract(contract['id'])
+                            # self.contracting_client.get_contract(contract['id'])
+                            self._get_contract(contract['id'])
                         except ResourceNotFound:
                             logger.info('Sync contract {} of tender {}'.format(contract['id'], tender['id']))
                         except Exception, e:
