@@ -20,6 +20,7 @@ docs_requires = requires + [
 databridge_requires = requires + [
     'PyYAML',
     'gevent',
+    'percache',
     'ExtendedJournalHandler',
     'openprocurement_client>=1.0b2'
 ]
