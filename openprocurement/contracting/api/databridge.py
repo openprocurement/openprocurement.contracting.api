@@ -218,6 +218,15 @@ class ContractingDataBridge(object):
                                         extra=journal_context({"MESSAGE_ID": DATABRIDGE_MISSING_CONTRACT_ITEMS},
                                                               {"CONTRACT_ID": contract['id'], "TENDER_ID": tender['id']}))
 
+                        for item in contract.get('items', []):
+                            if 'deliveryDate' in item and 'startDate' in item['deliveryDate']:
+                                if item['deliveryDate']['startDate'] > item['deliveryDate']['endDate']:
+                                    logger.info("Found dates missmatch {} and {}".format(item['deliveryDate']['startDate'], item['deliveryDate']['endDate']),
+                                                extra=journal_context(params={"CONTRACT_ID": contract['id'], "TENDER_ID": tender['id']}))
+                                    del item['deliveryDate']['startDate']
+                                    logger.info("startDate value cleaned.",
+                                                extra=journal_context(params={"CONTRACT_ID": contract['id'], "TENDER_ID": tender['id']}))
+
                         self.handicap_contracts_queue.put(contract)
 
     def prepare_contract_data(self):
