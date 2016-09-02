@@ -463,12 +463,14 @@ class ContractResourceTest(BaseWebTest):
         self.assertEqual(response.content_type, 'application/json')
         contract = response.json['data']
         self.assertEqual(contract['status'], 'active')
+        self.assertNotIn('transfer_token', response.json['data'])
 
         response = self.app.get('/contracts/{}'.format(contract['id']))
         self.assertEqual(response.status, '200 OK')
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(set(response.json['data']), set(contract))
         self.assertEqual(response.json['data'], contract)
+        self.assertNotIn('transfer_token', response.json['data'])
 
         # test eu contract create
         data = deepcopy(test_contract_data)
