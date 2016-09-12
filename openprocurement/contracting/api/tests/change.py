@@ -231,6 +231,16 @@ class ContractChangesResourceTest(BaseContractContentWebTest):
         self.assertEqual(response.status, '200 OK')
         self.assertEqual(response.body, 'null')
 
+        # set dateSigned
+        response = self.app.patch_json('/contracts/{}/changes/{}?acc_token={}'.format(self.contract['id'], change['id'], self.contract_token),
+                                       {'data': {'dateSigned': 'not valid date value'}}, status=422)
+        self.assertEqual(response.json['errors'][0], {u'description': [u'Could not parse not valid date value. Should be ISO8601.'], u'location': u'body', u'name': u'dateSigned'})
+
+        now = get_now().isoformat()
+        response = self.app.patch_json('/contracts/{}/changes/{}?acc_token={}'.format(self.contract['id'], change['id'], self.contract_token),
+                                       {'data': {'dateSigned': now}})
+        self.assertEqual(response.json['data']['dateSigned'], now)
+
         self.app.authorization = None
         response = self.app.patch_json('/contracts/{}/changes/{}?acc_token={}'.format(self.contract['id'], change['id'], self.contract_token),
                                        {'data': {'rationale_en': 'la-la-la'}}, status=403)
@@ -247,6 +257,10 @@ class ContractChangesResourceTest(BaseContractContentWebTest):
         self.assertNotEqual(response.json['data']['date'], creation_date)
         self.assertNotEqual(response.json['data']['date'], first_patch_date)
         self.assertNotEqual(response.json['data']['date'], second_patch_date)
+
+        now = get_now().isoformat()
+        response = self.app.patch_json('/contracts/{}/changes/{}?acc_token={}'.format(self.contract['id'], change['id'], self.contract_token),
+                                       {'data': {'dateSigned': now}}, status=403)
 
         response = self.app.patch_json('/contracts/{}/changes/{}?acc_token={}'.format(self.contract['id'], change['id'], self.contract_token),
                                        {'data': {'status': 'pending'}}, status=403)
