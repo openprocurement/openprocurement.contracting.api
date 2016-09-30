@@ -43,7 +43,7 @@ contract_view_role = (whitelist(
     'amountPaid', 'terminationDetails', 'contract_amountPaid',
 ))
 
-contract_administrator_role = (Administrator_role + whitelist('suppliers',))
+contract_administrator_role = (Administrator_role + whitelist('suppliers', 'value',))
 
 item_edit_role = whitelist(
     'description', 'description_en', 'description_ru', 'classification',
