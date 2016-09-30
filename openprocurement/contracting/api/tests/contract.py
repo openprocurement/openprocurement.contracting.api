@@ -736,6 +736,7 @@ class ContractResource4AdministratorTest(BaseContractWebTest):
     def test_contract_administrator_change(self):
         response = self.app.patch_json('/contracts/{}'.format(self.contract['id']),
                                        {'data': {'mode': u'test',
+                                                'value': {'amount': 100500},
                                                  "suppliers": [{
                                                     "contactPoint": {
                                                         "email": "fff@gmail.com",
@@ -748,6 +749,7 @@ class ContractResource4AdministratorTest(BaseContractWebTest):
         self.assertEqual(response.status, '200 OK')
         self.assertEqual(response.content_type, 'application/json')
         self.assertEqual(response.json['data']['mode'], u'test')
+        self.assertEqual(response.json['data']['value']['amount'], 100500)
         self.assertEqual(response.json['data']["procuringEntity"]["identifier"]["id"], "11111111")
         self.assertEqual(response.json['data']["procuringEntity"]["contactPoint"]["telephone"], "102")
         self.assertEqual(response.json['data']["suppliers"][0]["contactPoint"]["email"], "fff@gmail.com")
@@ -755,9 +757,9 @@ class ContractResource4AdministratorTest(BaseContractWebTest):
         self.assertEqual(response.json['data']["suppliers"][0]["address"]["postalCode"], "79014")
         self.assertEqual(response.json['data']["suppliers"][0]["address"]["countryName"], u"Україна") # old field value left untouchable
 
-        # administrator has permissions to update only: mode, procuringEntity, suppliers
+        # administrator has permissions to update only: mode, procuringEntity,
+        # suppliers and value
         response = self.app.patch_json('/contracts/{}'.format(self.contract['id']), {'data': {
-            'value': {'amount': 100500},
             'id': '1234' * 8,
             'owner': 'kapitoshka',
             'contractID': "UA-00-00-00",
@@ -766,7 +768,7 @@ class ContractResource4AdministratorTest(BaseContractWebTest):
         self.assertEqual(response.body, 'null')
 
         response = self.app.get('/contracts/{}'.format(self.contract['id']))
-        self.assertEqual(response.json['data']['value']['amount'], 238)
+        self.assertEqual(response.json['data']['value']['amount'], 100500)
         self.assertEqual(response.json['data']['id'], self.initial_data['id'])
         self.assertEqual(response.json['data']['owner'], self.initial_data['owner'])
         self.assertEqual(response.json['data']['contractID'], self.initial_data['contractID'])
