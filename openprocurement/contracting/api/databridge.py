@@ -430,6 +430,8 @@ class ContractingDataBridge(object):
         try:
             while True:
                 gevent.sleep(self.jobs_watcher_delay)
+                logger.info('Queue sizes: Modified tenders- {}; Handicapped contracts- {}; Active contracts- {}; Active contracts retry- {}'.format(self.tenders_queue.qsize(),
+                 self.handicap_contracts_queue.qsize(), self.contracts_put_queue.qsize(), self.contracts_retry_put_queue.qsize()))
                 if forward_worker.dead or (backward_worker.dead and not backward_worker.successful()):
                     self._restart_synchronization_workers()
                     backward_worker, forward_worker = self.jobs
