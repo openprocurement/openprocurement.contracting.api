@@ -4,7 +4,7 @@ from openprocurement.contracting.api.traversal import Root
 from openprocurement.contracting.api.models import Contract
 
 LOGGER = logging.getLogger(__name__)
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 SCHEMA_DOC = 'openprocurement_contracts_schema'
 
 
@@ -78,5 +78,8 @@ def from1to2(registry):
                 doc['value'] = rel_award['value']
 
             docs.append(doc)
+
+    if docs:
+        registry.db.update(docs)
 
     LOGGER.info("Contracts migration is finished.", extra={'MESSAGE_ID': 'migrate_data'})
