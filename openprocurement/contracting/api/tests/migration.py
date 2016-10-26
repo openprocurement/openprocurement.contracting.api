@@ -48,7 +48,7 @@ class MigrateTest(BaseWebTest):
         self.assertIn('Signature=', migrated_item['documents'][0]['url'])
 
     def test_migrate_from1to2(self):
-        set_db_schema_version(self.db, 0)
+        set_db_schema_version(self.db, 1)
         with open(os.path.join(os.path.dirname(__file__), 'data/tender-contract-complete.json'), 'r') as df:
             data = json.loads(df.read())
 
@@ -72,7 +72,7 @@ class MigrateTest(BaseWebTest):
         self.assertNotIn("value", contract_data)
         self.assertNotIn("suppliers", contract_data)
 
-        migrate_data(self.app.app.registry, 1)
+        migrate_data(self.app.app.registry, 2)
         migrated_item = self.db.get(contract.id)
 
         self.assertIn("value", migrated_item)
