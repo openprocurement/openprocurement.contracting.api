@@ -53,3 +53,30 @@ def from0to1(registry):
             docs = []
     if docs:
         registry.db.update(docs)
+
+
+def from1to2(registry):
+    LOGGER.info("Start contracts migration.", extra={'MESSAGE_ID': 'migrate_data'})
+    results = registry.db.iterview('contracts/all', 2 ** 10, include_docs=True)
+    docs = []
+    for i in results:
+        doc = i.doc
+
+        if "suppliers" not in doc:
+            tender_id = doc['tender_id']
+            rel_award = doc['awardID']
+            tender_doc = registry.db.get(tender_id)
+
+            rel_award = [aw for aw in tender_doc['awards'] if aw['id'] == doc['awardID']]
+            if not rel_award:
+                LOGGER.warn("Related award {} for contract {} not found!".format(doc['awardID'], doc['id']), extra={'MESSAGE_ID': 'migrate_data'})
+                continue
+            rel_award = rel_award[0]
+
+            doc['suppliers'] = rel_award['suppliers']
+            if "value" not in doc:
+                doc['value'] = rel_award['value']
+
+            docs.append(doc)
+
+    LOGGER.info("Contracts migration is finished.", extra={'MESSAGE_ID': 'migrate_data'})
