@@ -118,7 +118,7 @@ class Change(Model):
         roles = {
             # 'edit': blacklist('id', 'date'),
             'create': whitelist('rationale', 'rationale_ru', 'rationale_en', 'rationaleTypes', 'contractNumber'),
-            'edit': whitelist('rationale', 'rationale_ru', 'rationale_en', 'rationaleTypes', 'contractNumber', 'status'),
+            'edit': whitelist('rationale', 'rationale_ru', 'rationale_en', 'rationaleTypes', 'contractNumber', 'status', 'dateSigned'),
             'view': schematics_default_role,
             'embedded': schematics_embedded_role,
         }
@@ -135,6 +135,11 @@ class Change(Model):
                                                   'taxRate', 'fiscalYearExtension'],
                                          required=True), min_size=1, required=True)
     contractNumber = StringType()
+    dateSigned = IsoDateTimeType()
+
+    def validate_dateSigned(self, data, value):
+        if value and value > get_now():
+            raise ValidationError(u"Contract signature date can't be in the future")
 
 
 @implementer(IContract)
@@ -144,7 +149,7 @@ class Contract(SchematicsDocument, BaseContract):
     revisions = ListType(ModelType(Revision), default=list())
     dateModified = IsoDateTimeType()
     _attachments = DictType(DictType(BaseType), default=dict())  # couchdb attachments
-    items = ListType(ModelType(Item), required=True, min_size=1, validators=[validate_cpv_group, validate_items_uniq])
+    items = ListType(ModelType(Item), required=False, min_size=1, validators=[validate_cpv_group, validate_items_uniq])
     tender_token = StringType(required=True)
     tender_id = StringType(required=True)
     owner_token = StringType(default=lambda: uuid4().hex)
