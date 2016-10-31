@@ -79,7 +79,9 @@ def from1to2(registry):
                 doc['value'] = rel_award['value']
 
             docs.append(doc)
-
+        if len(docs) >= 2 ** 7:
+            registry.db.update(docs)
+            docs = []
     if docs:
         registry.db.update(docs)
 
