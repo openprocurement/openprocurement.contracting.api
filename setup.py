@@ -1,10 +1,9 @@
 from setuptools import setup, find_packages
 import os
 
-version = '2.3.10'
+version = '2.3.11'
 
 requires = [
-    'couchdb',
     'setuptools',
 ]
 
@@ -20,6 +19,7 @@ docs_requires = requires + [
 databridge_requires = requires + [
     'PyYAML',
     'gevent',
+    'redis',
     'LazyDB',
     'ExtendedJournalHandler',
     'openprocurement_client>=1.0b2'
@@ -35,6 +35,9 @@ entry_points = {
     ],
     'openprocurement.api.plugins': [
         'contracting = openprocurement.contracting.api:includeme'
+    ],
+    'openprocurement.api.migrations': [
+        'contracts = openprocurement.contracting.api.migration:migrate_data'
     ]
 }
 
