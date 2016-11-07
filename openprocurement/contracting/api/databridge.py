@@ -115,17 +115,27 @@ class ContractingDataBridge(object):
         self.full_stack_sync_delay = self.config_get('full_stack_sync_delay') or 15
         self.empty_stack_sync_delay = self.config_get('empty_stack_sync_delay') or 101
 
-        api_server = self.config_get('tenders_api_server')
-        api_version = self.config_get('tenders_api_version')
-        ro_api_server = self.config_get('public_tenders_api_server') or api_server
+        self.api_server = self.config_get('tenders_api_server')
+        self.api_version = self.config_get('tenders_api_version')
+        self.ro_api_server = self.config_get('public_tenders_api_server') or self.api_server
 
-        contracting_api_server = self.config_get('contracting_api_server')
-        contracting_api_version = self.config_get('contracting_api_version')
+        self.contracting_api_server = self.config_get('contracting_api_server')
+        self.contracting_api_version = self.config_get('contracting_api_version')
 
         self.tenders_sync_client = TendersClientSync('',
-            host_url=ro_api_server, api_version=api_version,
+            host_url=self.ro_api_server, api_version=self.api_version,
         )
+        self.clients_initialize(self.api_server, self.api_version, self.contracting_api_server, self.contracting_api_version)
 
+        self.initial_sync_point = {}
+        self.initialization_event = gevent.event.Event()
+        self.tenders_queue = Queue(maxsize=queue_size)
+        self.handicap_contracts_queue = Queue(maxsize=queue_size)
+        self.contracts_put_queue = Queue(maxsize=queue_size)
+        self.contracts_retry_put_queue = Queue(maxsize=queue_size)
+        self.basket = {}
+
+    def clients_initialize(self, api_server, api_version, contracting_api_server, contracting_api_version):
         self.client = TendersClient(
             self.config_get('api_token'),
             host_url=api_server, api_version=api_version,
@@ -143,14 +153,6 @@ class ContractingDataBridge(object):
                     self.config_get('api_token'),
                     host_url=ro_api_server, api_version=api_version
                 )
-
-        self.initial_sync_point = {}
-        self.initialization_event = gevent.event.Event()
-        self.tenders_queue = Queue(maxsize=queue_size)
-        self.handicap_contracts_queue = Queue(maxsize=queue_size)
-        self.contracts_put_queue = Queue(maxsize=queue_size)
-        self.contracts_retry_put_queue = Queue(maxsize=queue_size)
-        self.basket = {}
 
     def config_get(self, name):
         return self.config.get('main').get(name)
@@ -403,6 +405,7 @@ class ContractingDataBridge(object):
             # TODO reset queues and restart sync
             logger.warn('Forward worker died!', extra=journal_context({"MESSAGE_ID": DATABRIDGE_WORKER_DIED}, {}))
             logger.exception(e)
+            raise
         else:
             logger.warn('Forward data sync finished!', extra=journal_context({"MESSAGE_ID": DATABRIDGE_WORKER_DIED}, {}))  # Should never happen!!!
 
@@ -423,6 +426,7 @@ class ContractingDataBridge(object):
             # TODO reset queues and restart sync
             logger.warn('Backward worker died!', extra=journal_context({"MESSAGE_ID": DATABRIDGE_WORKER_DIED}, {}))
             logger.exception(e)
+            raise
         else:
             logger.info('Backward data sync finished.')
 
@@ -483,6 +487,7 @@ class ContractingDataBridge(object):
         logger.warn("Restarting synchronization", extra=journal_context({"MESSAGE_ID": DATABRIDGE_RESTART}, {}))
         for j in self.jobs:
             j.kill()
+        self.clients_initialize(self.api_server, self.api_version, self.contracting_api_server, self.contracting_api_version)
         self._start_synchronization_workers()
 
     def _start_contract_sculptors(self):
