@@ -35,29 +35,6 @@ def migrate_data(registry, destination=None):
 
 
 def from0to1(registry):
-    class Request(object):
-        def __init__(self, registry):
-            self.registry = registry
-    len(registry.db.view('contracts/all', limit=1))
-    results = registry.db.iterview('contracts/all', 2 ** 10, include_docs=True, stale='update_after')
-    docs = []
-    request = Request(registry)
-    root = Root(request)
-    for i in results:
-        doc = i.doc
-        if doc.get('documents'):
-            contract = Contract(doc)
-            contract.__parent__ = root
-            doc = contract.to_primitive()
-            docs.append(doc)
-        if len(docs) >= 2 ** 7:
-            registry.db.update(docs)
-            docs = []
-    if docs:
-        registry.db.update(docs)
-
-
-def from1to2(registry):
     LOGGER.info("Start contracts migration.", extra={'MESSAGE_ID': 'migrate_data'})
     results = registry.db.iterview('contracts/all', 2 ** 10, include_docs=True)
     docs = []
@@ -87,5 +64,28 @@ def from1to2(registry):
             docs = []
     if docs:
         registry.db.update(docs)
-
     LOGGER.info("Contracts migration is finished.", extra={'MESSAGE_ID': 'migrate_data'})
+
+
+def from1to2(registry):
+    class Request(object):
+        def __init__(self, registry):
+            self.registry = registry
+    len(registry.db.view('contracts/all', limit=1))
+    results = registry.db.iterview('contracts/all', 2 ** 10, include_docs=True, stale='update_after')
+    docs = []
+    request = Request(registry)
+    root = Root(request)
+    for i in results:
+        doc = i.doc
+        if not all([i.get('url', '').startswith(registry.docservice_url) for i in doc.get('documents', [])]):
+            contract = Contract(doc)
+            contract.__parent__ = root
+            doc = contract.to_primitive()
+            doc['dateModified'] = get_now().isoformat()
+            docs.append(doc)
+        if len(docs) >= 2 ** 7:
+            registry.db.update(docs)
+            docs = []
+    if docs:
+        registry.db.update(docs)
