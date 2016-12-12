@@ -44,6 +44,11 @@ Let's access the URL of the created object:
 Getting access
 --------------
 
+There two ways of getting access to contract but soon the first method can be deprecated. Thus, better consider using the second method. Link to it you can find above.
+
+1. First method
+~~~~~~~~~~~~~~~
+
 In order to get rights for future contract editing, you need to use this view ``PATCH: /contracts/{id}/credentials?acc_token={tender_token}`` with the API key of the eMall (broker), where tender was generated.
 
 In the ``PATCH: /contracts/{id}/credentials?acc_token={tender_token}``: 
@@ -56,6 +61,12 @@ Response will contain ``access.token`` for the contract that can be used for fur
 
 .. include:: tutorial/contract-credentials.http
    :code:
+
+2. Second method
+~~~~~~~~~~~~~~~~
+For generating new contract credentials is used Transfer object.
+
+* `Contracts credentials change with Transfer object (Relocation) <http://relocation.api-docs.openprocurement.org/en/latest/tutorial.html#contract-credentials-change>`_
 
 Let's view contracts.
 
