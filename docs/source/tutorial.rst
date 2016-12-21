@@ -66,9 +66,9 @@ Response will contain ``access.token`` for the contract that can be used for fur
 
 2. The second mechanism
 ~~~~~~~~~~~~~~~~~~~~~~~
-Transfer object is used for generating new contract credentials
+`Transfer` object is used for generating new contract credentials.
 
-For more detailed instructions see `Contracts credentials change with Transfer object <http://relocation.api-docs.openprocurement.org/en/latest/tutorial.html#contract-credentials-change>`_ in the Relocation documentation.
+For more detailed instructions see `Contracts ownership change with Transfer object <http://relocation.api-docs.openprocurement.org/en/latest/tutorial.html#contract-ownership-change>`_ in the Relocation documentation.
 
 Let's view contracts.
 
