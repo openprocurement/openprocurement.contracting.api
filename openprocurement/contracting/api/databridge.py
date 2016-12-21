@@ -132,24 +132,27 @@ class ContractingDataBridge(object):
         self.contracts_retry_put_queue = Queue(maxsize=queue_size)
         self.basket = {}
 
+    def contracting_client_init(self):
+            self.contracting_client = ContractingClient(
+                self.config_get('api_token'),
+                host_url=self.contracting_api_server, api_version=self.contracting_api_version
+            )
+
+            self.contracting_client_ro = self.contracting_client
+            if self.config_get('public_tenders_api_server'):
+                if self.api_server == self.contracting_api_server and self.api_version == self.contracting_api_version:
+                    self.contracting_client_ro = ContractingClient(
+                        '',
+                        host_url=self.ro_api_server, api_version=self.api_version
+                    )
     def clients_initialize(self):
         self.client = TendersClient(
             self.config_get('api_token'),
             host_url=self.api_server, api_version=self.api_version,
         )
 
-        self.contracting_client = ContractingClient(
-            self.config_get('api_token'),
-            host_url=self.contracting_api_server, api_version=self.contracting_api_version
-        )
+        self.contracting_client_init()
 
-        self.contracting_client_ro = self.contracting_client
-        if self.config_get('public_tenders_api_server'):
-            if self.api_server == self.contracting_api_server and self.api_version == self.contracting_api_version:
-                self.contracting_client_ro = ContractingClient(
-                    '',
-                    host_url=self.ro_api_server, api_version=self.api_version
-                )
         self.tenders_sync_client = TendersClientSync('',
             host_url=self.ro_api_server, api_version=self.api_version,
         )
@@ -266,7 +269,7 @@ class ContractingDataBridge(object):
                         logger.info('Put tender {} back to tenders queue'.format(tender_to_sync['id']), extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION}, params={"TENDER_ID": tender_to_sync['id'],
                                                                                                                                                                             "CONTRACT_ID": contract['id']}))
                         self.tenders_queue.put(tender_to_sync)
-                        break
+                        raise
                     else:
                         self.cache_db.put(contract['id'], True)
                         logger.info('Contract exists {}'.format(contract['id']), extra=journal_context({"MESSAGE_ID": DATABRIDGE_CONTRACT_EXISTS},
@@ -324,6 +327,7 @@ class ContractingDataBridge(object):
                 logger.warn("Fail to handle tender contracts", extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION}, {}))
                 logger.exception(e)
                 gevent.sleep(self.on_error_delay)
+                raise
             gevent.sleep(0)
 
     def prepare_contract_data(self):
@@ -526,6 +530,8 @@ class ContractingDataBridge(object):
                     if job.dead:
                         logger.warn('Restarting {} worker'.format(name))
                         self.immortal_jobs[name] = gevent.spawn(getattr(self, name))
+                        if name == 'get_tender_contracts':
+                            self.contracting_client_init()
 
         except KeyboardInterrupt:
             logger.info('Exiting...')
