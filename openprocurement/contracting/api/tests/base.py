@@ -2,15 +2,14 @@
 import os
 import unittest
 import webtest
-from openprocurement.api.utils import VERSION
 from base64 import b64encode
 from copy import deepcopy
 from datetime import datetime
-from openprocurement.api.utils import VERSION, SESSION
-from openprocurement.api.models import get_now
 from requests.models import Response
 from urllib import urlencode
 from uuid import uuid4
+from openprocurement.api.utils import VERSION, SESSION
+from openprocurement.api.models import get_now
 
 now = datetime.now()
 
