@@ -115,34 +115,14 @@ class ContractingDataBridge(object):
         self.full_stack_sync_delay = self.config_get('full_stack_sync_delay') or 15
         self.empty_stack_sync_delay = self.config_get('empty_stack_sync_delay') or 101
 
-        api_server = self.config_get('tenders_api_server')
-        api_version = self.config_get('tenders_api_version')
-        ro_api_server = self.config_get('public_tenders_api_server') or api_server
+        self.api_server = self.config_get('tenders_api_server')
+        self.api_version = self.config_get('tenders_api_version')
+        self.ro_api_server = self.config_get('public_tenders_api_server') or self.api_server
 
-        contracting_api_server = self.config_get('contracting_api_server')
-        contracting_api_version = self.config_get('contracting_api_version')
+        self.contracting_api_server = self.config_get('contracting_api_server')
+        self.contracting_api_version = self.config_get('contracting_api_version')
 
-        self.tenders_sync_client = TendersClientSync('',
-            host_url=ro_api_server, api_version=api_version,
-        )
-
-        self.client = TendersClient(
-            self.config_get('api_token'),
-            host_url=api_server, api_version=api_version,
-        )
-
-        self.contracting_client = ContractingClient(
-            self.config_get('api_token'),
-            host_url=contracting_api_server, api_version=contracting_api_version
-        )
-
-        self.contracting_client_ro = self.contracting_client
-        if self.config_get('public_tenders_api_server'):
-            if api_server == contracting_api_server and api_version == contracting_api_version:
-                self.contracting_client_ro = ContractingClient(
-                    self.config_get('api_token'),
-                    host_url=ro_api_server, api_version=api_version
-                )
+        self.clients_initialize()
 
         self.initial_sync_point = {}
         self.initialization_event = gevent.event.Event()
@@ -151,6 +131,28 @@ class ContractingDataBridge(object):
         self.contracts_put_queue = Queue(maxsize=queue_size)
         self.contracts_retry_put_queue = Queue(maxsize=queue_size)
         self.basket = {}
+
+    def clients_initialize(self):
+        self.client = TendersClient(
+            self.config_get('api_token'),
+            host_url=self.api_server, api_version=self.api_version,
+        )
+
+        self.contracting_client = ContractingClient(
+            self.config_get('api_token'),
+            host_url=self.contracting_api_server, api_version=self.contracting_api_version
+        )
+
+        self.contracting_client_ro = self.contracting_client
+        if self.config_get('public_tenders_api_server'):
+            if self.api_server == self.contracting_api_server and self.api_version == self.contracting_api_version:
+                self.contracting_client_ro = ContractingClient(
+                    '',
+                    host_url=self.ro_api_server, api_version=self.api_version
+                )
+        self.tenders_sync_client = TendersClientSync('',
+            host_url=self.ro_api_server, api_version=self.api_version,
+        )
 
     def config_get(self, name):
         return self.config.get('main').get(name)
@@ -166,6 +168,7 @@ class ContractingDataBridge(object):
         return data
 
     def initialize_sync(self, params=None, direction=None):
+        self.initialization_event.clear()
         if direction == "backward":
             assert params['descending']
             response = self.tenders_sync_client.sync_tenders(params, extra_headers={'X-Client-Request-ID': generate_req_id()})
@@ -194,6 +197,10 @@ class ContractingDataBridge(object):
                 delay = self.full_stack_sync_delay
                 logger.info("Client {} params: {}".format(direction, params))
             for tender in tenders_list:
+                if tender.get('procurementMethodType') in ['competitiveDialogueUA', 'competitiveDialogueEU']:
+                    logger.info('Skipping {} tender {}'.format(tender['procurementMethodType'], tender['id']),
+                                extra=journal_context({"MESSAGE_ID": DATABRIDGE_INFO}, params={"TENDER_ID": tender['id']}))
+                    continue
                 if tender['status'] in ("active.qualification",
                                         "active.awarded", "complete"):
                     if hasattr(tender, "lots"):
@@ -283,7 +290,7 @@ class ContractingDataBridge(object):
                                     logger.debug('Copying items from related award {}'.format(award['id']))
                                     contract['items'] = award['items']
                                 else:
-                                    logger.debug('Copying items matching related lot {}'.format(award['relatedLot']))
+                                    logger.debug('Copying items matching related lot {}'.format(award['lotID']))
                                     contract['items'] = [item for item in tender['items'] if item['relatedLot'] == award['lotID']]
                             else:
                                 logger.warn('Not found related award for contact {} of tender {}'.format(contract['id'], tender['id']),
@@ -393,7 +400,7 @@ class ContractingDataBridge(object):
 
     def get_tender_contracts_forward(self):
         logger.info('Start forward data sync worker...')
-        params = {'opt_fields': 'status,lots', 'mode': '_all_'}
+        params = {'opt_fields': 'status,lots,procurementMethodType', 'mode': '_all_'}
         try:
             for tender_data in self.get_tenders(params=params, direction="forward"):
                 logger.info('Forward sync: Put tender {} to process...'.format(tender_data['id']),
@@ -403,12 +410,13 @@ class ContractingDataBridge(object):
             # TODO reset queues and restart sync
             logger.warn('Forward worker died!', extra=journal_context({"MESSAGE_ID": DATABRIDGE_WORKER_DIED}, {}))
             logger.exception(e)
+            raise
         else:
             logger.warn('Forward data sync finished!', extra=journal_context({"MESSAGE_ID": DATABRIDGE_WORKER_DIED}, {}))  # Should never happen!!!
 
     def get_tender_contracts_backward(self):
         logger.info('Start backward data sync worker...')
-        params = {'opt_fields': 'status,lots', 'descending': 1, 'mode': '_all_'}
+        params = {'opt_fields': 'status,lots,procurementMethodType', 'descending': 1, 'mode': '_all_'}
         try:
             for tender_data in self.get_tenders(params=params, direction="backward"):
                 stored = self.cache_db.get(tender_data['id'])
@@ -423,6 +431,7 @@ class ContractingDataBridge(object):
             # TODO reset queues and restart sync
             logger.warn('Backward worker died!', extra=journal_context({"MESSAGE_ID": DATABRIDGE_WORKER_DIED}, {}))
             logger.exception(e)
+            raise
         else:
             logger.info('Backward data sync finished.')
 
@@ -483,6 +492,7 @@ class ContractingDataBridge(object):
         logger.warn("Restarting synchronization", extra=journal_context({"MESSAGE_ID": DATABRIDGE_RESTART}, {}))
         for j in self.jobs:
             j.kill()
+        self.clients_initialize()
         self._start_synchronization_workers()
 
     def _start_contract_sculptors(self):
@@ -496,10 +506,18 @@ class ContractingDataBridge(object):
         self._start_contract_sculptors()
         self._start_synchronization_workers()
         backward_worker, forward_worker = self.jobs
+        counter = 0
 
         try:
             while True:
                 gevent.sleep(self.jobs_watcher_delay)
+                if counter == 20:
+                    logger.info(
+                        'Current state: Tenders to process {}; Unhandled contracts {}; Contracts to create {}; Retrying to create {}'.format(
+                        self.tenders_queue.qsize(), self.handicap_contracts_queue.qsize(), self.contracts_put_queue.qsize(),
+                        self.contracts_retry_put_queue.qsize()))
+                    counter = 0
+                counter += 1
                 if forward_worker.dead or (backward_worker.dead and not backward_worker.successful()):
                     self._restart_synchronization_workers()
                     backward_worker, forward_worker = self.jobs
