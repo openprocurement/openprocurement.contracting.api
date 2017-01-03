@@ -281,6 +281,7 @@ class ContractingDataBridge(object):
 
                     contract['tender_id'] = tender['id']
                     contract['procuringEntity'] = tender['procuringEntity']
+                    contract['operator'] = tender.get('operator', 'UA')
                     if tender.get('mode'):
                         contract['mode'] = tender['mode']
 

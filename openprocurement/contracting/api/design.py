@@ -5,6 +5,7 @@ from openprocurement.api import design
 
 FIELDS = [
     'contractID',
+    'operator',
 ]
 CHANGES_FIELDS = FIELDS + [
     'dateModified',

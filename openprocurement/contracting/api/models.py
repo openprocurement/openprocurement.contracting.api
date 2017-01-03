@@ -26,7 +26,7 @@ contract_create_role = (whitelist(
     'id', 'awardID', 'contractID', 'contractNumber', 'title', 'title_en',
     'title_ru', 'description', 'description_en', 'description_ru', 'status',
     'period', 'value', 'dateSigned', 'items', 'suppliers',
-    'procuringEntity', 'owner', 'tender_token', 'tender_id', 'mode'
+    'procuringEntity', 'owner', 'tender_token', 'tender_id', 'mode', 'operator',
 ))
 
 contract_edit_role = (whitelist(
@@ -40,7 +40,7 @@ contract_view_role = (whitelist(
     'title_en', 'title_ru', 'description', 'description_en', 'description_ru',
     'status', 'period', 'value', 'dateSigned', 'documents', 'items',
     'suppliers', 'procuringEntity', 'owner', 'mode', 'tender_id', 'changes',
-    'amountPaid', 'terminationDetails', 'contract_amountPaid',
+    'amountPaid', 'terminationDetails', 'contract_amountPaid', 'operator',
 ))
 
 contract_administrator_role = (Administrator_role + whitelist('suppliers',))
@@ -162,6 +162,7 @@ class Contract(SchematicsDocument, BaseContract):
     documents = ListType(ModelType(Document), default=list())
     amountPaid = ModelType(Value)
     terminationDetails = StringType()
+    operator = StringType(default='UA')
 
     create_accreditation = 3  # TODO
 

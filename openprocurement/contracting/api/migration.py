@@ -5,7 +5,7 @@ from openprocurement.contracting.api.traversal import Root
 from openprocurement.contracting.api.models import Contract
 
 LOGGER = logging.getLogger(__name__)
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 SCHEMA_DOC = 'openprocurement_contracts_schema'
 
 
@@ -82,6 +82,23 @@ def from1to2(registry):
             contract = Contract(doc)
             contract.__parent__ = root
             doc = contract.to_primitive()
+            doc['dateModified'] = get_now().isoformat()
+            docs.append(doc)
+        if len(docs) >= 2 ** 7:
+            registry.db.update(docs)
+            docs = []
+    if docs:
+        registry.db.update(docs)
+
+
+def from2to3(registry):
+    len(registry.db.view('contracts/all', limit=1))
+    results = registry.db.iterview('contracts/all', 2 ** 10, include_docs=True, stale='update_after')
+    docs = []
+    for i in results:
+        doc = i.doc
+        if not doc.get('operator'):
+            doc['operator'] = 'UA'
             doc['dateModified'] = get_now().isoformat()
             docs.append(doc)
         if len(docs) >= 2 ** 7:
