@@ -455,13 +455,13 @@ class ContractResourceTest(BaseWebTest):
 
     def test_create_contract_operator(self):
         data = test_contract_data.copy()
-        data.update({'operator': 'XX', 'contractID': "XX-" + uuid4().hex})
+        data.update({'operator': 'xx', 'contractID': "YY-" + uuid4().hex})
         response = self.app.post_json('/contracts', {'data': data})
         self.assertEqual(response.status, '201 Created')
         self.assertEqual(response.content_type, 'application/json')
         contract = response.json['data']
-        self.assertEqual(contract['operator'], 'XX')
-        self.assertTrue(contract['contractID'].startswith('XX-'))
+        self.assertEqual(contract['operator'], 'xx')
+        self.assertTrue(contract['contractID'].startswith('YY-'))
 
     def test_create_contract(self):
         response = self.app.get('/contracts')

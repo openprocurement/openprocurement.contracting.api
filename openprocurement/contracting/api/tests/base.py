@@ -104,7 +104,7 @@ test_contract_data = {
     u"awardID": u"8481d7eb01694c25b18658036c236c5d",
     u"id": uuid4().hex,
     u"contractID": u"UA-2016-03-18-000001-1",
-    u"operator": u"UA",
+    u"operator": u"ua",
     u"tender_id": uuid4().hex,
     u"tender_token": sha512(test_tender_token).hexdigest(),
     u"owner": u"broker"
