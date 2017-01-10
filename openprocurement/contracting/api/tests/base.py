@@ -5,6 +5,7 @@ import webtest
 from base64 import b64encode
 from copy import deepcopy
 from datetime import datetime
+from hashlib import sha512
 from requests.models import Response
 from urllib import urlencode
 from uuid import uuid4
@@ -12,7 +13,7 @@ from openprocurement.api.utils import VERSION, SESSION
 from openprocurement.api.models import get_now
 
 now = datetime.now()
-
+test_tender_token = uuid4().hex
 test_contract_data = {
     u"items": [
         {
@@ -105,7 +106,7 @@ test_contract_data = {
     u"contractID": u"UA-2016-03-18-000001-1",
     u"operator": u"UA",
     u"tender_id": uuid4().hex,
-    u"tender_token": uuid4().hex,
+    u"tender_token": sha512(test_tender_token).hexdigest(),
     u"owner": u"broker"
 }
 

@@ -235,13 +235,11 @@ class ContractCredentialsResource(APIResource):
             self.request.errors.status = 403
             return
 
-        set_ownership(contract, self.request)
+        acc = set_ownership(contract, self.request)
         if save_contract(self.request):
             self.LOGGER.info('Generate Contract credentials {}'.format(contract.id),
                         extra=context_unpack(self.request, {'MESSAGE_ID': 'contract_patch'}))
             return {
                 'data': contract.serialize("view"),
-                'access': {
-                    'token': contract.owner_token
-                }
+                'access': acc
             }
