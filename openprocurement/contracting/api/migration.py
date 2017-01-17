@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from openprocurement.api.auth import DEFAULT_OPERATOR
 from openprocurement.api.models import get_now
 from openprocurement.contracting.api.traversal import Root
 from openprocurement.contracting.api.models import Contract
@@ -98,7 +99,7 @@ def from2to3(registry):
     for i in results:
         doc = i.doc
         if not doc.get('operator'):
-            doc['operator'] = 'UA'
+            doc['operator'] = DEFAULT_OPERATOR
             doc['dateModified'] = get_now().isoformat()
             docs.append(doc)
         if len(docs) >= 2 ** 7:

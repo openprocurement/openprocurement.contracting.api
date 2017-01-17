@@ -4,6 +4,7 @@ import json
 import unittest
 
 from copy import deepcopy
+from openprocurement.api.auth import DEFAULT_OPERATOR
 from openprocurement.api.models import Tender, get_now
 from openprocurement.contracting.api.models import Contract
 from openprocurement.contracting.api.migration import migrate_data, get_db_schema_version, set_db_schema_version, SCHEMA_VERSION
@@ -88,7 +89,7 @@ class MigrateTest(BaseWebTest):
         migrate_data(self.app.app.registry, 3)
         migrated_item = self.db.get(_id)
         self.assertIn('operator', migrated_item)
-        self.assertEqual(migrated_item['operator'], 'UA')
+        self.assertEqual(migrated_item['operator'], DEFAULT_OPERATOR)
 
 
 def suite():
