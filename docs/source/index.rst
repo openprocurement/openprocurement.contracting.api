@@ -1,7 +1,7 @@
 .. title:: OpenProcurement Contracting
 
 Welcome to openprocurement.contracting.api's documentation!
-==========================================================
+===========================================================
 
 Please report any problems or suggestions for improvement either via the
 `mailing list <http://groups.google.com/group/open-procurement-general>`_ or
