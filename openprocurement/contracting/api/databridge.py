@@ -421,7 +421,6 @@ class ContractingDataBridge(object):
             # TODO reset queues and restart sync
             logger.warn('Forward worker died!', extra=journal_context({"MESSAGE_ID": DATABRIDGE_WORKER_DIED}, {}))
             logger.exception(e)
-            raise
         else:
             logger.warn('Forward data sync finished!', extra=journal_context({"MESSAGE_ID": DATABRIDGE_WORKER_DIED}, {}))  # Should never happen!!!
 
@@ -442,7 +441,6 @@ class ContractingDataBridge(object):
             # TODO reset queues and restart sync
             logger.warn('Backward worker died!', extra=journal_context({"MESSAGE_ID": DATABRIDGE_WORKER_DIED}, {}))
             logger.exception(e)
-            raise
         else:
             logger.info('Backward data sync finished.')
 
