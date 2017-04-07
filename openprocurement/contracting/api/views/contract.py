@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from functools import partial
-from logging import getLogger
+from openprocurement.api.models import validate_coordinate
+from schematics.exceptions import ValidationError
 from openprocurement.api.utils import (
     context_unpack,
     decrypt,
     encrypt,
     json_view,
-    APIResource
+    APIResource,
+    error_handler
 )
 
 from openprocurement.contracting.api.utils import (
@@ -14,6 +16,7 @@ from openprocurement.contracting.api.utils import (
     save_contract)
 from openprocurement.contracting.api.validation import (
     validate_contract_data, validate_patch_contract_data)
+from openprocurement.api.models import ITEMS_LOCATION_VALIDATION_FROM, get_now
 from openprocurement.contracting.api.design import (
     FIELDS,
     contracts_by_dateModified_view,
@@ -46,6 +49,24 @@ FEED = {
                      path='/contracts',
                      description="Contracts")
 class ContractsResource(APIResource):
+
+    def validate_items_delivery_location(self):
+        contract = self.request.validated['contract']
+        if contract.items:
+            for item in contract.items:
+                if item.deliveryLocation:
+                    validators = [validate_coordinate(*args) for args in
+                                  [(-90, 90, 'latitude'), (-180, 180, 'longitude')]]
+                    errors = {}
+                    for validate, l in zip(validators, ('latitude', 'longitude')):
+                        try:
+                            validate(getattr(item.deliveryLocation, l))
+                        except ValidationError as e:
+                            errors[l] = e.message
+                    if errors:
+                        self.request.errors.status = 422
+                        self.request.errors.add('body', 'items', [{"deliveryLocation": errors}])
+                        raise error_handler(self.request.errors)
 
     def __init__(self, request, context):
         super(ContractsResource, self).__init__(request, context)
@@ -168,7 +189,8 @@ class ContractsResource(APIResource):
             doc = type(contract).documents.model_class(i)
             doc.__parent__ = contract
             contract.documents.append(doc)
-
+        if get_now() > ITEMS_LOCATION_VALIDATION_FROM:
+            self.validate_items_delivery_location()
         # set_ownership(contract, self.request) TODO
         self.request.validated['contract'] = contract
         self.request.validated['contract_src'] = {}
@@ -207,6 +229,8 @@ class ContractResource(ContractsResource):
 
         apply_patch(self.request, save=False, src=self.request.validated['contract_src'])
 
+        if get_now() > ITEMS_LOCATION_VALIDATION_FROM:
+            self.validate_items_delivery_location()
         if contract.status == 'terminated' and not contract.amountPaid:
             self.request.errors.add('body', 'data', 'Can\'t terminate contract while \'amountPaid\' is not set')
             self.request.errors.status = 403
