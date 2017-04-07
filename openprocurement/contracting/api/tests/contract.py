@@ -435,8 +435,267 @@ class ContractResourceTest(BaseWebTest):
         self.assertEqual(response.json['status'], 'error')
         self.assertEqual(response.json['errors'], [
             {u'description': u'Rogue field', u'location':
-                u'body', u'name': u'invalid_field'}
+             u'body', u'name': u'invalid_field'}
         ])
+
+    def test_contract_item_location_validation(self):
+        response = self.app.get('/contracts')
+        self.assertEqual(response.status, '200 OK')
+        self.assertEqual(len(response.json['data']), 0)
+
+        data = deepcopy(test_contract_data)
+        data['items'][0]['deliveryLocation'] = {
+            'latitude': -89.99999999,
+            'longitude': -179.99999999
+        }
+        response = self.app.post_json('/contracts', {"data": data})
+        self.assertEqual(response.status, '201 Created')
+        self.assertEqual(response.content_type, 'application/json')
+        contract = response.json['data']
+        self.assertEqual(data['items'][0]['deliveryLocation']['latitude'],
+                         contract['items'][0]['deliveryLocation']['latitude'])
+        self.assertEqual(data['items'][0]['deliveryLocation']['longitude'],
+                         contract['items'][0]['deliveryLocation']['longitude'])
+        del self.db[contract['id']]
+
+        # Create contract with valid location (float coordinates as string)
+        data['items'][0]['deliveryLocation']['latitude'] = '12.0123456789'
+        data['items'][0]['deliveryLocation']['longitude'] = '179.02354'
+        response = self.app.post_json('/contracts', {"data": data})
+        self.assertEqual(response.status, '201 Created')
+        self.assertEqual(response.content_type, 'application/json')
+        contract = response.json['data']
+        self.assertEqual(contract['items'][0]['deliveryLocation']['latitude'],
+            data['items'][0]['deliveryLocation']['latitude'])
+        self.assertEqual(contract['items'][0]['deliveryLocation']['longitude'],
+            data['items'][0]['deliveryLocation']['longitude'])
+        del self.db[contract['id']]
+
+        # Create contract with valid location (integer coordinates as string)
+        data['items'][0]['deliveryLocation']['latitude'] = '90'
+        data['items'][0]['deliveryLocation']['longitude'] = '180'
+        response = self.app.post_json('/contracts', {"data": data})
+        self.assertEqual(response.status, '201 Created')
+        self.assertEqual(response.content_type, 'application/json')
+        contract = response.json['data']
+        self.assertEqual(contract['items'][0]['deliveryLocation']['latitude'],
+            data['items'][0]['deliveryLocation']['latitude'])
+        self.assertEqual(contract['items'][0]['deliveryLocation']['longitude'],
+            data['items'][0]['deliveryLocation']['longitude'])
+        del self.db[contract['id']]
+
+        # Create tender with valid location (integer coordinates)
+        data['items'][0]['deliveryLocation']['latitude'] = 90
+        data['items'][0]['deliveryLocation']['longitude'] = 180
+        response = self.app.post_json('/contracts', {"data": data})
+        self.assertEqual(response.status, '201 Created')
+        self.assertEqual(response.content_type, 'application/json')
+        contract = response.json['data']
+        self.assertEqual(contract['items'][0]['deliveryLocation']['latitude'],
+            data['items'][0]['deliveryLocation']['latitude'])
+        self.assertEqual(contract['items'][0]['deliveryLocation']['longitude'],
+            data['items'][0]['deliveryLocation']['longitude'])
+        del self.db[contract['id']]
+
+        ## Tests for invalid values latitude and longitude
+        # Create contract with invalid location (latitude and longitude)
+        data['items'][0]['deliveryLocation']['latitude'] = 'string'
+        data['items'][0]['deliveryLocation']['longitude'] = 'string'
+        response = self.app.post_json('/contracts', {"data": data},
+                                      status=422)
+        self.assertEqual(response.status, '422 Unprocessable Entity')
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.json['status'], 'error')
+        self.assertEqual(response.json['errors'], [{
+            u'location': u'body',
+            u'name': u'items',
+            u'description': [{
+                u'deliveryLocation': {
+                    u'latitude': [u'Invalid value. Required latitude format 12.0123456789'],
+                    u'longitude': [u'Invalid value. Required longitude format 12.0123456789']
+                }}]
+        }])
+
+        # Create contract with latitude and longitude greater than 90 and 180 degree
+        data['items'][0]['deliveryLocation']['latitude'] = 90.000001
+        data['items'][0]['deliveryLocation']['longitude'] = 180.000001
+        response = self.app.post_json('/contracts', {"data": data},
+                                      status=422)
+        self.assertEqual(response.status, '422 Unprocessable Entity')
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.json['status'], 'error')
+        self.assertEqual(response.json['errors'], [{
+            u'location': u'body',
+            u'name': u'items',
+            u'description': [{
+                u'deliveryLocation': {
+                    u'latitude': [u"Invalid value. Latitude must be between -90 and 90 degree."],
+                    u'longitude': [u"Invalid value. Longitude must be between -180 and 180 degree."]
+                }}],
+        }])
+
+        # Create contract with latitude and longitude less than 90 and 180 degree
+        data['items'][0]['deliveryLocation']['latitude'] = -90.000001
+        data['items'][0]['deliveryLocation']['longitude'] = -180.000001
+        response = self.app.post_json('/contracts', {"data": data},
+                                      status=422)
+        self.assertEqual(response.status, '422 Unprocessable Entity')
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.json['status'], 'error')
+        self.assertEqual(response.json['errors'], [{
+            u'location': u'body',
+            u'name': u'items',
+            u'description': [{
+                u'deliveryLocation': {
+                    u'latitude': [u"Invalid value. Latitude must be between -90 and 90 degree."],
+                    u'longitude': [u"Invalid value. Longitude must be between -180 and 180 degree."]
+                }}],
+        }])
+
+        # Create contract with latitude and longitude greater than 90 and 180 degree
+        data['items'][0]['deliveryLocation']['latitude'] = '90.00001'
+        data['items'][0]['deliveryLocation']['longitude'] = '180.00001'
+        response = self.app.post_json('/contracts', {"data": data},
+                                      status=422)
+        self.assertEqual(response.status, '422 Unprocessable Entity')
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.json['status'], 'error')
+        self.assertEqual(response.json['errors'], [{
+            u'location': u'body',
+            u'name': u'items',
+            u'description': [{
+                u'deliveryLocation': {
+                    u'latitude': [u"Invalid value. Latitude must be between -90 and 90 degree."],
+                    u'longitude': [u"Invalid value. Longitude must be between -180 and 180 degree."]
+                }}],
+        }])
+
+        # Create contract with latitude and longitude less than -90 and -180 degree
+        data['items'][0]['deliveryLocation']['latitude'] = '-90.00001'
+        data['items'][0]['deliveryLocation']['longitude'] = '-180.00001'
+        response = self.app.post_json('/contracts', {"data": data},
+                                      status=422)
+        self.assertEqual(response.status, '422 Unprocessable Entity')
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.json['status'], 'error')
+        self.assertEqual(response.json['errors'], [{
+            u'location': u'body',
+            u'name': u'items',
+            u'description': [{
+                u'deliveryLocation': {
+                    u'latitude': [u"Invalid value. Latitude must be between -90 and 90 degree."],
+                    u'longitude': [u"Invalid value. Longitude must be between -180 and 180 degree."]
+                }}],
+        }])
+
+        # Create contract with longitude but without latitude
+        del data['items'][0]['deliveryLocation']['latitude']
+        data['items'][0]['deliveryLocation']['longitude'] = '179.001'
+        response = self.app.post_json('/contracts', {"data": data}, status=422)
+        self.assertEqual(response.status, '422 Unprocessable Entity')
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.json['status'], 'error')
+        self.assertEqual(response.json['errors'], [{
+            u'location': u'body',
+            u'name': u'items',
+            u'description': [{u'deliveryLocation': {u'latitude': [u'This field is required.']}}],
+        }])
+
+        # Create contract with latitude but without longitude
+        data['items'][0]['deliveryLocation']['latitude'] = '28.01'
+        del data['items'][0]['deliveryLocation']['longitude']
+        response = self.app.post_json('/contracts', {"data": data}, status=422)
+        self.assertEqual(response.status, '422 Unprocessable Entity')
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.json['status'], 'error')
+        self.assertEqual(response.json['errors'], [{
+            u'location': u'body',
+            u'name': u'items',
+            u'description': [{u'deliveryLocation': {u'longitude': [u'This field is required.']}}],
+        }])
+
+        # Create contract without longitude and latitude
+        del data['items'][0]['deliveryLocation']['latitude']
+        response = self.app.post_json('/contracts', {"data": data}, status=422)
+        self.assertEqual(response.status, '422 Unprocessable Entity')
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.json['status'], 'error')
+        self.assertEqual(response.json['errors'], [{
+            u'location': u'body',
+            u'name': u'items',
+            u'description': [{u'deliveryLocation': {u'longitude': [u'This field is required.'], "latitude": ["This field is required."]}}],
+        }])
+        del data['items'][0]['deliveryLocation']
+
+        response = self.app.post_json('/contracts', {"data": data})
+        self.assertEqual(response.status, '201 Created')
+        self.assertEqual(response.content_type, 'application/json')
+        contract = response.json['data']
+        contract_id = contract['id']
+
+        # Patch existed tender without deliveryLocation invalid values deliveryLocation
+        response = self.app.patch_json('/contracts/' + contract_id, {
+            'data': {'items': [{'deliveryLocation': {
+                                    'longitude': 'string',
+                                    'latitude': '72..1'
+                                }}]}}, status=422)
+        self.assertEqual(response.status, '422 Unprocessable Entity')
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.json['status'], 'error')
+        self.assertEqual(response.json['errors'], [{
+            u'location': u'body',
+            u'name': u'items',
+            u'description': [{
+                u'deliveryLocation': {
+                    u'latitude': [u'Invalid value. Required latitude format 12.0123456789'],
+                    u'longitude': [u'Invalid value. Required longitude format 12.0123456789']
+                }}],
+        }])
+
+        # Patch existed contract without deliveryLocation
+        response = self.app.patch_json('/contracts/' + contract_id, {
+            'data': {'items': [{'deliveryLocation': {
+                                    'longitude': 80,
+                                    'latitude': 79
+                                }}]}})
+        self.assertEqual(response.status, '200 OK')
+        self.assertEqual(response.content_type, 'application/json')
+        contract = response.json['data']
+        self.assertEqual(contract['id'], contract_id)
+        self.assertEqual(contract['items'][0]['deliveryLocation'],
+                         {'longitude': 80, 'latitude': 79})
+
+        # Patch existed tender new deliveryLocation values
+        response = self.app.patch_json('/contracts/' + contract_id, {
+            'data': {'items': [{'deliveryLocation': {
+                                    'longitude': '120',
+                                    'latitude': '-80'
+                                    }}]}})
+        self.assertEqual(response.status, '200 OK')
+        self.assertEqual(response.content_type, 'application/json')
+        contract = response.json['data']
+        self.assertEqual(contract['id'], contract_id)
+        self.assertEqual(contract['items'][0]['deliveryLocation'],
+                         {'longitude': '120', 'latitude': '-80'})
+
+        # Patch existed tender invalid values deliveryLocation
+        response = self.app.patch_json('/contracts/' + contract_id, {
+            'data': {'items': [{'deliveryLocation': {
+                                    'longitude': '180.',
+                                    'latitude': '.90'
+                        }}]}}, status=422)
+        self.assertEqual(response.status, '422 Unprocessable Entity')
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(response.json['status'], 'error')
+        self.assertEqual(response.json['errors'], [{
+            u'location': u'body',
+            u'name': u'items',
+            u'description': [{
+                u'deliveryLocation': {
+                    u'latitude': [u'Invalid value. Required latitude format 12.0123456789'],
+                    u'longitude': [u'Invalid value. Required longitude format 12.0123456789']
+                }}],
+        }])
 
     def test_create_contract_generated(self):
         data = test_contract_data.copy()
