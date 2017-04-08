@@ -15,3 +15,4 @@ def includeme(config):
     config.add_request_method(extract_contract, 'contract', reify=True)
     config.add_request_method(contract_from_data)
     config.scan("openprocurement.contracting.api.views")
+    config.scan("openprocurement.contracting.api.subscribers")
