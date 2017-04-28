@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from functools import partial
-from logging import getLogger
 from openprocurement.api.utils import (
     context_unpack,
     decrypt,
@@ -8,12 +7,16 @@ from openprocurement.api.utils import (
     json_view,
     APIResource
 )
-
+from schematics.exceptions import ValidationError
 from openprocurement.contracting.api.utils import (
     contractingresource, apply_patch, contract_serialize, set_ownership,
     save_contract)
 from openprocurement.contracting.api.validation import (
-    validate_contract_data, validate_patch_contract_data)
+    validate_contract_data,
+    validate_patch_contract_data,
+    validate_items_delivery_location
+)
+from openprocurement.api.models import ITEMS_LOCATION_VALIDATION_FROM, get_now
 from openprocurement.contracting.api.design import (
     FIELDS,
     contracts_by_dateModified_view,
@@ -168,7 +171,6 @@ class ContractsResource(APIResource):
             doc = type(contract).documents.model_class(i)
             doc.__parent__ = contract
             contract.documents.append(doc)
-
         # set_ownership(contract, self.request) TODO
         self.request.validated['contract'] = contract
         self.request.validated['contract_src'] = {}
@@ -205,8 +207,15 @@ class ContractResource(ContractsResource):
             self.request.errors.status = 403
             return
 
-        apply_patch(self.request, save=False, src=self.request.validated['contract_src'])
+        if get_now() > ITEMS_LOCATION_VALIDATION_FROM:
+            try:
+                validate_items_delivery_location(self.request)
+            except ValidationError as err:
+                self.request.errors.add('body', 'items', [{'deliveryLocation': err.message}])
+                self.request.errors.status = 422
+                return
 
+        apply_patch(self.request, save=False, src=self.request.validated['contract_src'])
         if contract.status == 'terminated' and not contract.amountPaid:
             self.request.errors.add('body', 'data', 'Can\'t terminate contract while \'amountPaid\' is not set')
             self.request.errors.status = 403

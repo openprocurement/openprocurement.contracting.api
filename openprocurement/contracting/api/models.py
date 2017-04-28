@@ -10,6 +10,7 @@ from schematics.types.serializable import serializable
 from schematics.exceptions import ValidationError
 from schematics.transforms import whitelist, blacklist
 from openprocurement.api.models import get_now
+from openprocurement.api.models import Location as BaseLocation
 from openprocurement.api.models import Contract as BaseContract
 from openprocurement.api.models import Document as BaseDocument
 from openprocurement.api.models import Organization as BaseOrganization
@@ -99,7 +100,21 @@ class ProcuringEntity(Organization):
     kind = StringType(choices=['general', 'special', 'defense', 'other'])
 
 
+class Location(BaseLocation):
+    # Disable validation on model levev and move it to view level.
+    # Related to time difference between tender and contract creation moment
+    def validate_latitude(self, data, latitude):
+        pass
+
+    # same
+    def validate_longitude(self, data, longitude):
+        """same as validatate_latitude"""
+        pass
+
+
 class Item(BaseItem):
+
+    deliveryLocation = ModelType(Location)
 
     class Options:
         roles = {
