@@ -26,7 +26,7 @@ contract_create_role = (whitelist(
     'id', 'awardID', 'contractID', 'contractNumber', 'title', 'title_en',
     'title_ru', 'description', 'description_en', 'description_ru', 'status',
     'period', 'value', 'dateSigned', 'items', 'suppliers',
-    'procuringEntity', 'owner', 'tender_token', 'tender_id', 'mode'
+    'procuringEntity', 'owner', 'tender_token', 'tender_id', 'mode', 'contractType',
 ))
 
 contract_edit_role = (whitelist(
@@ -40,7 +40,7 @@ contract_view_role = (whitelist(
     'title_en', 'title_ru', 'description', 'description_en', 'description_ru',
     'status', 'period', 'value', 'dateSigned', 'documents', 'items',
     'suppliers', 'procuringEntity', 'owner', 'mode', 'tender_id', 'changes',
-    'amountPaid', 'terminationDetails', 'contract_amountPaid',
+    'amountPaid', 'terminationDetails', 'contract_amountPaid', 'contractType',
 ))
 
 contract_administrator_role = (Administrator_role + whitelist('suppliers',))
@@ -52,6 +52,10 @@ item_edit_role = whitelist(
 
 class IContract(Interface):
     """ Contract marker interface """
+
+
+class IESCOContract(IContract):
+    """ ESCO Contract marker interface """
 
 
 def get_contract(model):
@@ -158,6 +162,7 @@ class Contract(SchematicsDocument, BaseContract):
     documents = ListType(ModelType(Document), default=list())
     amountPaid = ModelType(Value)
     terminationDetails = StringType()
+    contractType = StringType(choices=['common', 'esco.EU'])
 
     create_accreditation = 3  # TODO
 
@@ -220,3 +225,13 @@ class Contract(SchematicsDocument, BaseContract):
                               currency=self.value.currency,
                               valueAddedTaxIncluded=self.value.valueAddedTaxIncluded))
 
+CommonContract = Contract
+
+
+@implementer(IESCOContract)
+class Contract(CommonContract):
+    contractType = StringType(choices=['common', 'esco.EU'], default='esco.EU')
+
+ESCOContract = Contract
+# Set base contract model to common contract (not esco)
+Contract = CommonContract
