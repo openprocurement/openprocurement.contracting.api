@@ -88,7 +88,7 @@ class ContractsResource(APIResourceListing):
             }
 
 
-@contractingresource(name='Contract',
+@contractingresource(name='common:Contract',
                      path='/contracts/{contract_id}',
                      description="Contract")
 class ContractResource(ContractsResource):
@@ -111,6 +111,13 @@ class ContractResource(ContractsResource):
             self.LOGGER.info('Updated contract {}'.format(contract.id),
                             extra=context_unpack(self.request, {'MESSAGE_ID': 'contract_patch'}))
             return {'data': contract.serialize('view')}
+
+
+@contractingresource(name='esco.EU:Contract',
+                     path='/contracts/{contract_id}',
+                     description="Contract")
+class ESCOContractResource(ContractResource):
+    pass
 
 
 @contractingresource(name='Contract credentials',
