@@ -117,7 +117,7 @@ class ContractResource(ContractsResource):
                      path='/contracts/{contract_id}',
                      description="Contract")
 class ESCOContractResource(ContractResource):
-    pass
+    """ ESCO Contract Resource """
 
 
 @contractingresource(name='Contract credentials',
