@@ -508,12 +508,13 @@ def create_contract(self):
 
 
 def contract_type_check(self):
+    expected_contract_type = getattr(self, 'contract_type', 'common')
     response = self.app.post_json('/contracts', {"data": self.initial_data})
     self.assertEqual(response.status, '201 Created')
     self.assertEqual(response.content_type, 'application/json')
     contract = response.json['data']
     self.assertIn('contractType', response.json['data'])
-    self.assertEqual(contract['contractType'], 'common')
+    self.assertEqual(contract['contractType'], expected_contract_type)
 
     tender_token = self.initial_data['tender_token']
     response = self.app.patch_json('/contracts/{}/credentials?acc_token={}'.format(contract['id'], tender_token),
@@ -521,38 +522,24 @@ def contract_type_check(self):
     self.assertEqual(response.status, '200 OK')
     token = response.json['access']['token']
 
+    expected_contract_type = getattr(self, 'contract_type', 'common')
     response = self.app.patch_json('/contracts/{}?acc_token={}'.format(contract['id'], token),
-                                   {'data': {'contractType': 'new type',
+                                   {'data': {'contractType': 'new type'}}, status=422)
+    self.assertEqual(response.status, '422 Unprocessable Entity')
+    self.assertEqual(response.json['errors'], [
+        {"location": "body", "name": "contractType", "description": ["Value must be one of ['common', 'esco.EU']."]}
+    ])
+
+    patch_contract_type = 'common'
+    if expected_contract_type == 'common':
+        patch_contract_type = 'esco.EU'
+    response = self.app.patch_json('/contracts/{}?acc_token={}'.format(contract['id'], token),
+                                   {'data': {'contractType': patch_contract_type,
                                              'description': 'new description'}})
     self.assertEqual(response.status, '200 OK')
     self.assertEqual(response.json['data']['description'], 'new description')
-    self.assertNotEqual(response.json['data']['contractType'], 'new type')
-    self.assertEqual(response.json['data']['contractType'], 'common')
-
-
-def contract_type_check_esco(self):
-    esco_data = deepcopy(self.initial_data)
-    esco_data['contractType'] = 'esco.EU'
-    response = self.app.post_json('/contracts', {"data": esco_data})
-    self.assertEqual(response.status, '201 Created')
-    self.assertEqual(response.content_type, 'application/json')
-    contract = response.json['data']
-    self.assertIn('contractType', response.json['data'])
-    self.assertEqual(contract['contractType'], 'esco.EU')
-
-    tender_token = self.initial_data['tender_token']
-    response = self.app.patch_json('/contracts/{}/credentials?acc_token={}'.format(contract['id'], tender_token),
-                                   {'data': ''})
-    self.assertEqual(response.status, '200 OK')
-    token = response.json['access']['token']
-
-    response = self.app.patch_json('/contracts/{}?acc_token={}'.format(contract['id'], token),
-                                   {'data': {'contractType': 'common type',
-                                             'description': 'new description'}})
-    self.assertEqual(response.status, '200 OK')
-    self.assertEqual(response.json['data']['description'], 'new description')
-    self.assertNotEqual(response.json['data']['contractType'], 'new type')
-    self.assertEqual(response.json['data']['contractType'], 'esco.EU')
+    self.assertNotEqual(response.json['data']['contractType'], patch_contract_type)
+    self.assertEqual(response.json['data']['contractType'], expected_contract_type)
 
 # ContractResource4BrokersTest
 

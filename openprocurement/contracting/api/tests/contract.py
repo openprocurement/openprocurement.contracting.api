@@ -23,7 +23,6 @@ from openprocurement.contracting.api.tests.contract_blanks import (
     create_contract_generated,
     create_contract,
     contract_type_check,
-    contract_type_check_esco,
     # ContractResource4BrokersTest
     contract_status_change,
     contract_items_change,
@@ -54,7 +53,6 @@ class ContractResourceTest(BaseWebTest):
     test_create_contract_generated = snitch(create_contract_generated)
     test_create_contract = snitch(create_contract)
     test_contract_type_check = snitch(contract_type_check)
-    test_contract_type_check_esco = snitch(contract_type_check_esco)
 
 
 class ContractWDocumentsWithDSResourceTest(BaseWebTest):
@@ -113,6 +111,15 @@ class ContractCredentialsTest(BaseContractWebTest):
         self.assertEqual(response.status, '405 Method Not Allowed')
 
     test_generate_credentials = snitch(generate_credentials)
+
+
+class EscoContractResourceTest(BaseWebTest):
+    """ contract resource test """
+    initial_data = deepcopy(test_contract_data)
+    initial_data['contractType'] = 'esco.EU'
+
+    contract_type = 'esco.EU'
+    test_contract_type_check = snitch(contract_type_check)
 
 def suite():
     suite = unittest.TestSuite()
