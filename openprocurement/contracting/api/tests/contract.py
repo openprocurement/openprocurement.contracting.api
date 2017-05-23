@@ -22,6 +22,8 @@ from openprocurement.contracting.api.tests.contract_blanks import (
     create_contract_invalid,
     create_contract_generated,
     create_contract,
+    contract_type_check,
+    contract_type_check_old_contracts,
     # ContractResource4BrokersTest
     contract_status_change,
     contract_items_change,
@@ -51,6 +53,7 @@ class ContractResourceTest(BaseWebTest):
     test_create_contract_invalid = snitch(create_contract_invalid)
     test_create_contract_generated = snitch(create_contract_generated)
     test_create_contract = snitch(create_contract)
+    test_contract_type_check_old_contracts = snitch(contract_type_check_old_contracts)
 
 
 class ContractWDocumentsWithDSResourceTest(BaseWebTest):
@@ -109,6 +112,16 @@ class ContractCredentialsTest(BaseContractWebTest):
         self.assertEqual(response.status, '405 Method Not Allowed')
 
     test_generate_credentials = snitch(generate_credentials)
+
+
+class CommonContractResourceTest(BaseWebTest):
+    """ contract resource test (with contract type) """
+    initial_data = deepcopy(test_contract_data)
+    initial_data['contractType'] = 'common'
+
+    contract_type = 'common'
+    test_contract_type_check = snitch(contract_type_check)
+
 
 def suite():
     suite = unittest.TestSuite()
