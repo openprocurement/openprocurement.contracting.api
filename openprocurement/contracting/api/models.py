@@ -54,6 +54,10 @@ class IContract(Interface):
     """ Contract marker interface """
 
 
+class IESCOContract(Interface):
+    """ ESCO Contract marker interface """
+
+
 def get_contract(model):
     while not IContract.providedBy(model):
         model = model.__parent__
@@ -158,7 +162,7 @@ class Contract(SchematicsDocument, BaseContract):
     documents = ListType(ModelType(Document), default=list())
     amountPaid = ModelType(Value)
     terminationDetails = StringType()
-    contractType = StringType(required=True, default='common')
+    contractType = StringType(choices=['common', 'esco.EU'], default='common')
 
     create_accreditation = 3  # TODO
 
@@ -221,6 +225,11 @@ class Contract(SchematicsDocument, BaseContract):
                               currency=self.value.currency,
                               valueAddedTaxIncluded=self.value.valueAddedTaxIncluded))
 
+CommonContract = Contract
 
-class ESCOContract(Contract):
-    contractType = 'esco.EU'
+
+@implementer(IESCOContract)
+class Contract(CommonContract):
+    contractType = StringType(choices=['common', 'esco.EU'], default='common')
+
+ESCOContract = Contract
