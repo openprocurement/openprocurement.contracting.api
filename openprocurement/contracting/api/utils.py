@@ -40,10 +40,8 @@ def register_contract_contractType(config, model):
     :param model:
         The contract model class
     """
-    if model.contractType.default == None:
-        config.registry.contract_contractTypes['common'] = model
-        return
-    config.registry.contract_contractTypes[model.contractType.default] = model
+    contract_type = model.contractType.default or 'common'
+    config.registry.contract_contractTypes[contract_type] = model
 
 
 def contract_from_data(request, data, raise_error=True, create=True):
