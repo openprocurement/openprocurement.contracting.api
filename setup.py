@@ -24,7 +24,8 @@ api_requires = requires + [
 
 entry_points = {
     'openprocurement.api.plugins': [
-        'contracting = openprocurement.contracting.api:includeme'
+        'contracting = openprocurement.contracting.api:includeme',
+        'contract.esco.EU = openprocurement.contracting.api:includeme_esco'
     ],
     'openprocurement.api.migrations': [
         'contracts = openprocurement.contracting.api.migration:migrate_data'
@@ -53,7 +54,7 @@ setup(name='openprocurement.contracting.api',
       zip_safe=False,
       install_requires=requires,
       tests_require=test_requires,
-      extras_require={'api': api_requires, 'test': test_requires, 
+      extras_require={'api': api_requires, 'test': test_requires,
                       'docs': docs_requires},
       entry_points=entry_points,
       )
