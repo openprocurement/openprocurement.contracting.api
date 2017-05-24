@@ -16,7 +16,8 @@ def validate_contract_data(request):
 
 
 def validate_patch_contract_data(request):
-    return validate_data(request, Contract, True)
+    model = type(request.context)
+    return validate_data(request, model, True)
 
 
 def validate_change_data(request):
