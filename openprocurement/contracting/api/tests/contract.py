@@ -13,8 +13,6 @@ from openprocurement.contracting.api.tests.base import (
 from openprocurement.contracting.api.tests.contract_blanks import (
     # ContractTest
     simple_add_contract,
-    # ContractESCOTest
-    simple_add_esco_contract,
     # ContractResourceTest
     empty_listing,
     listing,
@@ -41,13 +39,6 @@ class ContractTest(BaseWebTest):
     initial_data = test_contract_data
 
     test_simple_add_contract = snitch(simple_add_contract)
-
-
-class ContractESCOTest(BaseWebTest):
-    initial_data = deepcopy(test_contract_data)
-    initial_data['contractType'] = 'esco.EU'
-
-    test_simple_add_contract = snitch(simple_add_esco_contract)
 
 
 class ContractResourceTest(BaseWebTest):
@@ -131,14 +122,6 @@ class CommonContractResourceTest(BaseWebTest):
     contract_type = 'common'
     test_contract_type_check = snitch(contract_type_check)
 
-
-class EscoContractResourceTest(BaseWebTest):
-    """ esco contract resource test """
-    initial_data = deepcopy(test_contract_data)
-    initial_data['contractType'] = 'esco.EU'
-
-    contract_type = 'esco.EU'
-    test_contract_type_check = snitch(contract_type_check)
 
 def suite():
     suite = unittest.TestSuite()
