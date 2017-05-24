@@ -13,6 +13,8 @@ from openprocurement.contracting.api.tests.base import (
 from openprocurement.contracting.api.tests.contract_blanks import (
     # ContractTest
     simple_add_contract,
+    # ContractESCOTest
+    simple_add_esco_contract,
     # ContractResourceTest
     empty_listing,
     listing,
@@ -23,6 +25,7 @@ from openprocurement.contracting.api.tests.contract_blanks import (
     create_contract_generated,
     create_contract,
     contract_type_check,
+    contract_type_check_old_contracts,
     # ContractResource4BrokersTest
     contract_status_change,
     contract_items_change,
@@ -40,6 +43,13 @@ class ContractTest(BaseWebTest):
     test_simple_add_contract = snitch(simple_add_contract)
 
 
+class ContractESCOTest(BaseWebTest):
+    initial_data = deepcopy(test_contract_data)
+    initial_data['contractType'] = 'esco.EU'
+
+    test_simple_add_contract = snitch(simple_add_esco_contract)
+
+
 class ContractResourceTest(BaseWebTest):
     """ contract resource test """
     initial_data = test_contract_data
@@ -52,7 +62,7 @@ class ContractResourceTest(BaseWebTest):
     test_create_contract_invalid = snitch(create_contract_invalid)
     test_create_contract_generated = snitch(create_contract_generated)
     test_create_contract = snitch(create_contract)
-    test_contract_type_check = snitch(contract_type_check)
+    test_contract_type_check_old_contracts = snitch(contract_type_check_old_contracts)
 
 
 class ContractWDocumentsWithDSResourceTest(BaseWebTest):
@@ -113,8 +123,17 @@ class ContractCredentialsTest(BaseContractWebTest):
     test_generate_credentials = snitch(generate_credentials)
 
 
+class CommonContractResourceTest(BaseWebTest):
+    """ contract resource test (with contract type) """
+    initial_data = deepcopy(test_contract_data)
+    initial_data['contractType'] = 'common'
+
+    contract_type = 'common'
+    test_contract_type_check = snitch(contract_type_check)
+
+
 class EscoContractResourceTest(BaseWebTest):
-    """ contract resource test """
+    """ esco contract resource test """
     initial_data = deepcopy(test_contract_data)
     initial_data['contractType'] = 'esco.EU'
 

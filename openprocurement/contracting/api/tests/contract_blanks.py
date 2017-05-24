@@ -3,7 +3,7 @@ from uuid import uuid4
 from copy import deepcopy
 from datetime import timedelta
 from openprocurement.api.constants import ROUTE_PREFIX
-from openprocurement.contracting.api.models import Contract
+from openprocurement.contracting.api.models import Contract, ESCOContract
 from openprocurement.api.utils import get_now
 
 
@@ -12,6 +12,30 @@ from openprocurement.api.utils import get_now
 
 def simple_add_contract(self):
     u = Contract(self.initial_data)
+    u.contractID = "UA-C"
+
+    assert u.id == self.initial_data['id']
+    assert u.doc_id == self.initial_data['id']
+    assert u.rev is None
+
+    u.store(self.db)
+
+    assert u.id == self.initial_data['id']
+    assert u.rev is not None
+
+    fromdb = self.db.get(u.id)
+
+    assert u.contractID == fromdb['contractID']
+    assert u.doc_type == "Contract"
+
+    u.delete_instance(self.db)
+
+
+# ContractEscoTest
+
+
+def simple_add_esco_contract(self):
+    u = ESCOContract(self.initial_data)
     u.contractID = "UA-C"
 
     assert u.id == self.initial_data['id']
@@ -446,7 +470,7 @@ def create_contract_generated(self):
     self.assertEqual(set(contract), set([
         u'id', u'dateModified', u'contractID', u'status', u'suppliers',
         u'contractNumber', u'period', u'dateSigned', u'value', u'awardID',
-        u'items', u'owner', u'tender_id', u'procuringEntity', u'contractType']))
+        u'items', u'owner', u'tender_id', u'procuringEntity']))
     self.assertEqual(data['id'], contract['id'])
     self.assertNotEqual(data['doc_id'], contract['id'])
     self.assertEqual(data['contractID'], contract['contractID'])
@@ -507,8 +531,15 @@ def create_contract(self):
     self.assertEqual(response.status, '403 Forbidden')
 
 
+def contract_type_check_old_contracts(self):
+    response = self.app.post_json('/contracts', {"data": self.initial_data})
+    self.assertEqual(response.status, '201 Created')
+    self.assertEqual(response.content_type, 'application/json')
+    self.assertNotIn('contractType', response.json['data'])
+
+
 def contract_type_check(self):
-    expected_contract_type = getattr(self, 'contract_type', 'common')
+    expected_contract_type = getattr(self, 'contract_type')
     response = self.app.post_json('/contracts', {"data": self.initial_data})
     self.assertEqual(response.status, '201 Created')
     self.assertEqual(response.content_type, 'application/json')
@@ -522,24 +553,12 @@ def contract_type_check(self):
     self.assertEqual(response.status, '200 OK')
     token = response.json['access']['token']
 
-    expected_contract_type = getattr(self, 'contract_type', 'common')
     response = self.app.patch_json('/contracts/{}?acc_token={}'.format(contract['id'], token),
-                                   {'data': {'contractType': 'new type'}}, status=422)
+                                   {'data': {'contractType': 'unexisting contract type'}}, status=422)
     self.assertEqual(response.status, '422 Unprocessable Entity')
     self.assertEqual(response.json['errors'], [
-        {"location": "body", "name": "contractType", "description": ["Value must be one of ['common', 'esco.EU']."]}
+        {"location": "body", "name": "contractType", "description": ["Value must be one of ['{}'].".format(expected_contract_type)]}
     ])
-
-    patch_contract_type = 'common'
-    if expected_contract_type == 'common':
-        patch_contract_type = 'esco.EU'
-    response = self.app.patch_json('/contracts/{}?acc_token={}'.format(contract['id'], token),
-                                   {'data': {'contractType': patch_contract_type,
-                                             'description': 'new description'}})
-    self.assertEqual(response.status, '200 OK')
-    self.assertEqual(response.json['data']['description'], 'new description')
-    self.assertNotEqual(response.json['data']['contractType'], patch_contract_type)
-    self.assertEqual(response.json['data']['contractType'], expected_contract_type)
 
 # ContractResource4BrokersTest
 
