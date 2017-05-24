@@ -11,7 +11,7 @@ from openprocurement.api.utils import (
 from openprocurement.api.models import Revision
 
 from openprocurement.contracting.api.traversal import factory
-from openprocurement.contracting.api.models import Contract
+from openprocurement.contracting.api.models import Contract, ESCOContract
 
 
 contractingresource = partial(resource, error_handler=error_handler,
@@ -33,10 +33,29 @@ def extract_contract(request):
     return request.contract_from_data(doc)
 
 
+def register_contract_contractType(config, model):
+    """Register a contract contractType.
+    :param config:
+        The pyramid configuration object that will be populated.
+    :param model:
+        The contract model class
+    """
+    if model.contractType.default == None:
+        config.registry.contract_contractTypes['common'] = model
+        return
+    config.registry.contract_contractTypes[model.contractType.default] = model
+
+
 def contract_from_data(request, data, raise_error=True, create=True):
-    if create:
-        return Contract(data)
-    return Contract
+    contractType = data.get('contractType', 'common')
+    model = request.registry.contract_contractTypes.get(contractType)
+    if model is None and raise_error:
+        request.errors.add('data', 'contractType', 'Not implemented')
+        request.errors.status = 415
+        raise error_handler(request.errors)
+    if model is not None and create:
+        model = model(data)
+    return model
 
 
 def contract_serialize(request, contract_data, fields):
