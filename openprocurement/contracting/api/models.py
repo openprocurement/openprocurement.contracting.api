@@ -162,7 +162,7 @@ class Contract(SchematicsDocument, BaseContract):
     documents = ListType(ModelType(Document), default=list())
     amountPaid = ModelType(Value)
     terminationDetails = StringType()
-    contractType = StringType(choices=['common'])
+    contractType = StringType(choices=['common', 'esco.EU'])
 
     create_accreditation = 3  # TODO
 
@@ -230,8 +230,8 @@ CommonContract = Contract
 
 @implementer(IESCOContract)
 class Contract(CommonContract):
-    contractType = StringType(choices=['esco.EU'], default='esco.EU')
+    contractType = StringType(choices=['common', 'esco.EU'], default='esco.EU')
 
 ESCOContract = Contract
-
+# Set base contract model to common contract (not esco)
 Contract = CommonContract
