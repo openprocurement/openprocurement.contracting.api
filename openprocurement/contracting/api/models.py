@@ -54,7 +54,7 @@ class IContract(Interface):
     """ Contract marker interface """
 
 
-class IESCOContract(Interface):
+class IESCOContract(IContract):
     """ ESCO Contract marker interface """
 
 
@@ -162,7 +162,7 @@ class Contract(SchematicsDocument, BaseContract):
     documents = ListType(ModelType(Document), default=list())
     amountPaid = ModelType(Value)
     terminationDetails = StringType()
-    contractType = StringType(choices=['common', 'esco.EU'], default='common')
+    contractType = StringType(choices=['common'])
 
     create_accreditation = 3  # TODO
 
@@ -230,6 +230,8 @@ CommonContract = Contract
 
 @implementer(IESCOContract)
 class Contract(CommonContract):
-    contractType = StringType(choices=['common', 'esco.EU'], default='common')
+    contractType = StringType(choices=['esco.EU'], default='esco.EU')
 
 ESCOContract = Contract
+
+Contract = CommonContract
