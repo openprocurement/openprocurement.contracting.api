@@ -13,7 +13,6 @@ from openprocurement.api.utils import (
 from openprocurement.api.models import Revision
 
 from openprocurement.contracting.api.traversal import factory
-from openprocurement.contracting.api.models import Contract, ESCOContract
 
 
 contractingresource = partial(resource, error_handler=error_handler,
