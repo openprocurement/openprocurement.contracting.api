@@ -90,6 +90,7 @@ class ContractsResource(APIResourceListing):
 
 @contractingresource(name='common:Contract',
                      path='/contracts/{contract_id}',
+                     contractType='common',
                      description="Contract")
 class ContractResource(ContractsResource):
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from logging import getLogger
 from pkg_resources import get_distribution, iter_entry_points
+from openprocurement.contracting.api.utils import isContract
 
 PKG = get_distribution(__package__)
 
@@ -14,6 +15,7 @@ def includeme(config):
     from openprocurement.contracting.api.design import add_design
     add_design()
     config.registry.contract_contractTypes = {}
+    config.add_route_predicate('contractType', isContract)
     config.add_directive('add_contract_contractType',
                          register_contract_contractType)
     config.add_contract_contractType(CommonContract)

@@ -4,6 +4,8 @@ from pkg_resources import get_distribution
 from logging import getLogger
 from cornice.resource import resource
 from schematics.exceptions import ModelValidationError
+from pyramid.exceptions import URLDecodeError
+from pyramid.compat import decode_path_info
 from openprocurement.api.utils import (
     error_handler, get_revision_changes, context_unpack, apply_data_patch,
     generate_id, set_modetest_titles, get_now,
@@ -21,9 +23,26 @@ PKG = get_distribution(__package__)
 LOGGER = getLogger(PKG.project_name)
 
 
-def extract_contract(request):
+class isContract(object):
+    """ Route predicate. """
+
+    def __init__(self, val, config):
+        self.val = val
+
+    def text(self):
+        return 'contractType = %s' % (self.val,)
+
+    phash = text
+
+    def __call__(self, context, request):
+        if request.contract is not None:
+            c_type = getattr(request.contract, 'contractType', None) or "common"  # BBB old contract wo contractType attr
+            return c_type == self.val
+        return False
+
+
+def extract_contract_by_id(request, contract_id):
     db = request.registry.db
-    contract_id = request.matchdict['contract_id']
     doc = db.get(contract_id)
     if doc is None or doc.get('doc_type') != 'Contract':
         request.errors.add('url', 'contract_id', 'Not Found')
@@ -31,6 +50,25 @@ def extract_contract(request):
         raise error_handler(request.errors)
 
     return request.contract_from_data(doc)
+
+
+def extract_contract(request):
+    try:
+        # empty if mounted under a path in mod_wsgi, for example
+        path = decode_path_info(request.environ['PATH_INFO'] or '/')
+    except KeyError:
+        path = '/'
+    except UnicodeDecodeError as e:
+        raise URLDecodeError(e.encoding, e.object, e.start, e.end, e.reason)
+
+    contract_id = ""
+    # extract contract id
+    parts = path.split('/')
+    if len(parts) < 4 or parts[3] != 'contracts':
+        return
+
+    contract_id = parts[4]
+    return extract_contract_by_id(request, contract_id)
 
 
 def register_contract_contractType(config, model):
