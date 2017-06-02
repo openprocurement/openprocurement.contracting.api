@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from uuid import uuid4
-from zope.interface import implementer, Interface
+from zope.interface import implementer
 from couchdb_schematics.document import SchematicsDocument
 from pyramid.security import Allow
 from schematics.types import StringType, BaseType, MD5Type
@@ -9,6 +9,7 @@ from schematics.types.serializable import serializable
 from schematics.exceptions import ValidationError
 from schematics.transforms import whitelist, blacklist
 from openprocurement.api.utils import get_now
+from openprocurement.api.interfaces import IOPContent
 from openprocurement.api.models import Contract as BaseContract
 from openprocurement.api.models import Document as BaseDocument
 from openprocurement.api.models import Organization as BaseOrganization
@@ -50,7 +51,7 @@ item_edit_role = whitelist(
     'deliveryAddress', 'deliveryLocation', 'quantity', 'id')
 
 
-class IContract(Interface):
+class IContract(IOPContent):
     """ Contract marker interface """
 
 
