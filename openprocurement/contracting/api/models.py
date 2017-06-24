@@ -55,10 +55,6 @@ class IContract(IOPContent):
     """ Contract marker interface """
 
 
-class IESCOContract(IContract):
-    """ ESCO Contract marker interface """
-
-
 def get_contract(model):
     while not IContract.providedBy(model):
         model = model.__parent__
@@ -225,14 +221,3 @@ class Contract(SchematicsDocument, BaseContract):
             return Value(dict(amount=self.amountPaid.amount,
                               currency=self.value.currency,
                               valueAddedTaxIncluded=self.value.valueAddedTaxIncluded))
-
-CommonContract = Contract
-
-
-@implementer(IESCOContract)
-class Contract(CommonContract):
-    contractType = StringType(choices=['common', 'esco.EU'], default='esco.EU')
-
-ESCOContract = Contract
-# Set base contract model to common contract (not esco)
-Contract = CommonContract

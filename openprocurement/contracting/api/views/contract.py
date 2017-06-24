@@ -114,13 +114,6 @@ class ContractResource(ContractsResource):
             return {'data': contract.serialize('view')}
 
 
-@contractingresource(name='esco.EU:Contract',
-                     path='/contracts/{contract_id}',
-                     description="Contract")
-class ESCOContractResource(ContractResource):
-    """ ESCO Contract Resource """
-
-
 @contractingresource(name='Contract credentials',
                      path='/contracts/{contract_id}/credentials',
                      description="Contract credentials")
