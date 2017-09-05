@@ -389,7 +389,7 @@ class ContractingDataBridge(object):
                     logger.info("Reconnecting contract client",
                                 extra=journal_context({"MESSAGE_ID": DATABRIDGE_RECONNECT}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
                     self.contracting_client_init()
-                    self.contracts_put_queue.queue.clear()
+                    unsuccessful_contracts.clear()
             else:
                 self.cache_db.put(contract['id'], True)
                 self._put_tender_in_cache_by_contract(contract, contract['tender_id'])
