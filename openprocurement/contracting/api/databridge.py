@@ -382,7 +382,7 @@ class ContractingDataBridge(object):
                 logger.info("Schedule retry for contract {0}".format(contract['id']),
                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_RETRY_CREATE}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
                 self.contracts_retry_put_queue.put(contract)
-                unsuccessful_contracts.update({contract['id']})
+                unsuccessful_contracts.add(contract['id'])
                 if len(unsuccessful_contracts) >= unsuccessful_contracts_limit:
                     logger.info("Restarting contracting client because of reaching the limit of sequential unsuccessful contracts")
                     self.contracting_client_init()
