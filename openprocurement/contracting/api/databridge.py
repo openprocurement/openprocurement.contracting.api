@@ -31,7 +31,8 @@ from openprocurement.contracting.api.journal_msg_ids import (
     DATABRIDGE_GOT_EXTRA_INFO, DATABRIDGE_CREATE_CONTRACT, DATABRIDGE_EXCEPTION,
     DATABRIDGE_CONTRACT_CREATED, DATABRIDGE_RETRY_CREATE, DATABRIDGE_INFO,
     DATABRIDGE_TENDER_PROCESS, DATABRIDGE_SKIP_NOT_MODIFIED,
-    DATABRIDGE_SYNC_SLEEP, DATABRIDGE_SYNC_RESUME, DATABRIDGE_CACHED)
+    DATABRIDGE_SYNC_SLEEP, DATABRIDGE_SYNC_RESUME, DATABRIDGE_CACHED,
+    DATABRIDGE_RECONNECT)
 
 
 logger = logging.getLogger("openprocurement.contracting.api.databridge")
@@ -384,7 +385,9 @@ class ContractingDataBridge(object):
                 self.contracts_retry_put_queue.put(contract)
                 unsuccessful_contracts.add(contract['id'])
                 if len(unsuccessful_contracts) >= unsuccessful_contracts_limit:
-                    logger.info("Restarting contracting client because of reaching the limit of sequential unsuccessful contracts")
+                    # Current server stopped processing requests, reconnecting to other
+                    logger.info("Reconnecting contract client",
+                                extra=journal_context({"MESSAGE_ID": DATABRIDGE_RECONNECT}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
                     self.contracting_client_init()
             else:
                 self.cache_db.put(contract['id'], True)
