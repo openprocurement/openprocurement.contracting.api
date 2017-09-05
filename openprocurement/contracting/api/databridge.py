@@ -131,8 +131,6 @@ class ContractingDataBridge(object):
         self.contracts_put_queue = Queue(maxsize=queue_size)
         self.contracts_retry_put_queue = Queue(maxsize=queue_size)
         self.basket = {}
-        self.unsuccessful_contracts = {}
-        self.unsuccessful_contracts_limit = 10
 
     def contracting_client_init(self):
         logger.info('Initialization contracting clients.',  extra=journal_context({"MESSAGE_ID": DATABRIDGE_INFO}, {}))
@@ -364,6 +362,9 @@ class ContractingDataBridge(object):
             gevent.sleep(0)
 
     def put_contracts(self):
+        unsuccessful_contracts = set()
+        unsuccessful_contracts_limit = 10
+
         while True:
             contract = self.contracts_put_queue.get()
             try:
@@ -371,7 +372,7 @@ class ContractingDataBridge(object):
                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_CREATE_CONTRACT}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
                 data = {"data": contract.toDict()}
                 self.contracting_client.create_contract(data)
-                self.unsuccessful_contracts.clear()
+                unsuccessful_contracts.clear()
                 logger.info("Successfully created contract {} of tender {}".format(contract['id'], contract['tender_id']),
                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_CONTRACT_CREATED}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
             except Exception, e:
@@ -381,8 +382,8 @@ class ContractingDataBridge(object):
                 logger.info("Schedule retry for contract {0}".format(contract['id']),
                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_RETRY_CREATE}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
                 self.contracts_retry_put_queue.put(contract)
-                self.unsuccessful_contracts.update({contract['id']})
-                if len(self.unsuccessful_contracts) >= self.unsuccessful_contracts_limit:
+                unsuccessful_contracts.update({contract['id']})
+                if len(unsuccessful_contracts) >= unsuccessful_contracts_limit:
                     logger.info("Restarting contracting client because of reaching the limit of sequential unsuccessful contracts")
                     self.contracting_client_init()
             else:
