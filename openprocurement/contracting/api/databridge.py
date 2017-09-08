@@ -326,7 +326,6 @@ class ContractingDataBridge(object):
                                 del item['deliveryDate']['startDate']
                                 logger.info("startDate value cleaned.",
                                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION}, params={"CONTRACT_ID": contract['id'], "TENDER_ID": tender['id']}))
-
                     self.handicap_contracts_queue.put(contract)
 
     def get_tender_contracts(self):
@@ -353,7 +352,7 @@ class ContractingDataBridge(object):
                 logger.warn("Can't get tender credentials {}".format(contract['tender_id']),
                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION}, {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
                 logger.exception(e)
-                self.handicap_contracts_queue.put(contract)
+                self.handicap_contracts_queue_retry.put(contract)
                 gevent.sleep(self.on_error_delay)
             else:
                 logger.debug("Got extra info for tender {}".format(contract['tender_id']),
@@ -497,7 +496,6 @@ class ContractingDataBridge(object):
             logger.info("Getting tender {} credentials".format(tender_id))
             tender_credentials = self.get_tender_credentials(tender_id)['data']
             logger.info("Got tender {} credentials".format(tender_id))
-
             for contract in tender.get('contracts', []):
                 if contract['status'] != 'active':
                     logger.info("Skip contract {} in status {}".format(contract['id'], contract['status']))
