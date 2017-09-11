@@ -29,7 +29,7 @@ Schema
     string
 
 :title:
-    string, required
+    string
 
     |ocdsDescription|
     Contract title

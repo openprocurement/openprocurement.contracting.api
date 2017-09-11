@@ -11,15 +11,12 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: uk\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<"
-"=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Lokalize 1.5\n"
 
-#: ../../source/overview.rst:2
 msgid "Overview"
 msgstr "Огляд"
 
-#: ../../source/overview.rst:4
 msgid ""
 "The Open Procurement `Contracting` is plugin to `Open Procurement API <http"
 "://api-docs.openprocurement.org/>`_ software."
@@ -29,7 +26,6 @@ msgstr ""
 "метаінформації та документів (бінарних файлів), які пов’язані з договором і "
 "генеруються при його підписанні, виконанні та завершенні."
 
-#: ../../source/overview.rst:7
 msgid ""
 "REST-ful interface to plugin is in line with core software design "
 "principles."
@@ -37,11 +33,9 @@ msgstr ""
 "REST-ful інтерфейс для плагіна відповідає основним принципам дизайну "
 "програмного забезпечення."
 
-#: ../../source/overview.rst:11
 msgid "Conventions"
 msgstr "Домовленості"
 
-#: ../../source/overview.rst:13
 msgid ""
 "This plugin conventions follow the `Open Procurement API conventions <http"
 "://api-docs.openprocurement.org/en/latest/overview.html#conventions>`_."
@@ -49,28 +43,23 @@ msgstr ""
 "Цей плагін підтримує `домовленості Open Procurement API <http://api-"
 "docs.openprocurement.org/en/latest/overview.html#conventions>`_."
 
-#: ../../source/overview.rst:30
 msgid "API stability"
 msgstr "Стабільність API"
 
-#: ../../source/overview.rst:38
 msgid "Next steps"
 msgstr "Наступні кроки"
 
-#: ../../source/overview.rst:39
 msgid "You might find it helpful to look at the :ref:`tutorial`."
 msgstr "Далі читайте :ref:`tutorial`."
 
-#: ../../source/overview.rst:17
 msgid "Documentation of related packages"
 msgstr "Документація пов’язаних пакетів"
 
-#: ../../source/overview.rst:19
-msgid "`OpenProcurement API <http://api-docs.openprocurement.org/en/latest/>`_"
+msgid ""
+"`OpenProcurement API <http://api-docs.openprocurement.org/en/latest/>`_"
 msgstr ""
 "`OpenProcurement API <http://api-docs.openprocurement.org/uk_UA/latest/>`_"
 
-#: ../../source/overview.rst:21
 msgid ""
 "`Open tender procedure (OpenUA) <http://openua.api-"
 "docs.openprocurement.org/en/latest/>`_"
@@ -78,7 +67,6 @@ msgstr ""
 "`Відкриті торги (OpenUA) <http://openua.api-"
 "docs.openprocurement.org/uk/latest/>`_"
 
-#: ../../source/overview.rst:23
 msgid ""
 "`Open tender procedure with publication in English (OpenEU) <http://openeu"
 ".api-docs.openprocurement.org/en/latest/>`_"
@@ -86,7 +74,6 @@ msgstr ""
 "`Відкриті торги з публікацією англійською мовою (OpenEU) <http://openeu.api-"
 "docs.openprocurement.org/uk/latest/>`_"
 
-#: ../../source/overview.rst:25
 msgid ""
 "`Reporting, negotiation procurement procedure and negotiation procedure for "
 "the urgent need  <http://limited.api-docs.openprocurement.org/en/latest/>`_"
@@ -95,7 +82,6 @@ msgstr ""
 "переговорна процедура за нагальною потребою <http://limited.api-"
 "docs.openprocurement.org/uk/latest/>`_"
 
-#: ../../source/overview.rst:27
 msgid ""
 "`Defense open tender <http://defense.api-"
 "docs.openprocurement.org/en/latest/>`_"
@@ -103,7 +89,6 @@ msgstr ""
 "`Процедура відкритих торгів для оборонних цілей <http://defense.api-"
 "docs.openprocurement.org/uk/latest/>`_"
 
-#: ../../source/overview.rst:31
 msgid ""
 "API is highly unstable, and while API endpoints are expected to remain "
 "relatively stable the data exchange formats are expected to be changed a "
@@ -113,9 +98,7 @@ msgid ""
 "<https://gitter.im/openprocurement/openprocurement.contracting.api>`_."
 msgstr ""
 "API є дуже нестабільним. Хоча точки входу API залишатимуться відносно "
-"стабільними, "
-"формати обміну даними будуть часно змінюватись. Зміни в API обговорюються "
-"через `Open Procurement API <https://groups.google.com/group/open-"
-"procurement-api>`_. Питання можна задати через `Gitter <"
-"https://gitter.im/openprocurement/openprocurement.contracting.api>`_."
-
+"стабільними, формати обміну даними будуть часно змінюватись. Зміни в API "
+"обговорюються через `Open Procurement API <https://groups.google.com/group"
+"/open-procurement-api>`_. Питання можна задати через `Gitter "
+"<https://gitter.im/openprocurement/openprocurement.contracting.api>`_."

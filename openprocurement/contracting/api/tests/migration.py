@@ -48,7 +48,7 @@ class MigrateTest(BaseWebTest):
         self.assertNotIn("value", contract_data)
         self.assertNotIn("suppliers", contract_data)
 
-        migrate_data(self.app.app.registry, 1)
+        migrate_data(self.app.app.registry, 2)
         migrated_item = self.db.get(contract.id)
 
         self.assertIn("value", migrated_item)
@@ -90,3 +90,4 @@ def suite():
 
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')
+
