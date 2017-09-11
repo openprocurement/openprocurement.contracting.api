@@ -31,7 +31,7 @@ from openprocurement.contracting.api.journal_msg_ids import (
     DATABRIDGE_GOT_EXTRA_INFO, DATABRIDGE_CREATE_CONTRACT, DATABRIDGE_EXCEPTION,
     DATABRIDGE_CONTRACT_CREATED, DATABRIDGE_RETRY_CREATE, DATABRIDGE_INFO,
     DATABRIDGE_TENDER_PROCESS, DATABRIDGE_SKIP_NOT_MODIFIED,
-    DATABRIDGE_SYNC_SLEEP, DATABRIDGE_SYNC_RESUME, DATABRIDGE_CACHED)
+    DATABRIDGE_SYNC_SLEEP, DATABRIDGE_SYNC_RESUME, DATABRIDGE_CACHED, DATABRIDGE_RECONNECT)
 
 
 logger = logging.getLogger("openprocurement.contracting.api.databridge")
@@ -362,22 +362,40 @@ class ContractingDataBridge(object):
             gevent.sleep(0)
 
     def put_contracts(self):
+        unsuccessful_contracts = set()
+        unsuccessful_contracts_limit = 10
         while True:
             contract = self.contracts_put_queue.get()
             try:
                 logger.info("Creating contract {} of tender {}".format(contract['id'], contract['tender_id']),
-                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_CREATE_CONTRACT}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
+                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_CREATE_CONTRACT},
+                                                  {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
                 data = {"data": contract.toDict()}
                 self.contracting_client.create_contract(data)
-                logger.info("Successfully created contract {} of tender {}".format(contract['id'], contract['tender_id']),
-                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_CONTRACT_CREATED}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
+                unsuccessful_contracts.clear()
+                logger.info(
+                    "Successfully created contract {} of tender {}".format(contract['id'], contract['tender_id']),
+                    extra=journal_context({"MESSAGE_ID": DATABRIDGE_CONTRACT_CREATED},
+                                          {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
             except Exception, e:
-                logger.info("Unsuccessful put for contract {0} of tender {1}".format(contract['id'], contract['tender_id']),
-                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
+                logger.info(
+                    "Unsuccessful put for contract {0} of tender {1}".format(contract['id'], contract['tender_id']),
+                    extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION},
+                                          {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
                 logger.exception(e)
                 logger.info("Schedule retry for contract {0}".format(contract['id']),
-                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_RETRY_CREATE}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
+                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_RETRY_CREATE},
+                                                  {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
                 self.contracts_retry_put_queue.put(contract)
+                unsuccessful_contracts.add(contract['id'])
+                if len(unsuccessful_contracts) >= unsuccessful_contracts_limit:
+                    # Current server stopped processing requests, reconnecting to other
+                    logger.info("Reconnecting contract client",
+                                extra=journal_context({"MESSAGE_ID": DATABRIDGE_RECONNECT},
+                                                      {"CONTRACT_ID": contract['id'],
+                                                       "TENDER_ID": contract['tender_id']}))
+                    self.contracting_client_init()
+                    unsuccessful_contracts.clear()
             else:
                 self.cache_db.put(contract['id'], True)
                 self._put_tender_in_cache_by_contract(contract, contract['tender_id'])
