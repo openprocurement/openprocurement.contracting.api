@@ -338,51 +338,72 @@ class ContractingDataBridge(object):
                 raise
             gevent.sleep(0)
 
-    def prepare_contract(self, contract):
-        try:
-            logger.info("Getting extra info for tender {}".format(contract['tender_id']),
-                        extra=journal_context({"MESSAGE_ID": DATABRIDGE_GET_EXTRA_INFO},
-                                              {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
-            tender_data = self.get_tender_credentials(contract['tender_id'])
-            assert 'owner' in tender_data.data
-            assert 'tender_token' in tender_data.data
-            self.unsuccessful_contracts_in_prepare_contracts.clear()
-        except Exception, e:
-            logger.warn("Can't get tender credentials {}".format(contract['tender_id']),
-                        extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION},
-                                              {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
-            logger.exception(e)
-            self.handicap_contracts_queue_retry.put(contract)
-            self.unsuccessful_contracts_in_prepare_contracts.add(contract['id'])
-            if len(self.unsuccessful_contracts_in_prepare_contracts) >= self.unsuccessful_contracts_limit:
-                # Current server stopped processing requests, reconnecting to other
-                logger.info("Reconnecting contract client",
-                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_RECONNECT},
-                                                  {"CONTRACT_ID": contract['id'],
-                                                   "TENDER_ID": contract['tender_id']}))
-                self.contracting_client_init()
-                self.unsuccessful_contracts_in_prepare_contracts.clear()
-            gevent.sleep(self.on_error_delay)
-        else:
-            logger.debug("Got extra info for tender {}".format(contract['tender_id']),
-                         extra=journal_context({"MESSAGE_ID": DATABRIDGE_GOT_EXTRA_INFO},
-                                               {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
-            data = tender_data.data
-            contract['owner'] = data['owner']
-            contract['tender_token'] = data['tender_token']
-            self.contracts_put_queue.put(contract)
-        gevent.sleep(0)
-
     def prepare_contract_data(self):
         while True:
             contract = self.handicap_contracts_queue.get()
-            self.prepare_contract(contract)
+            try:
+                logger.info("Getting extra info for tender {}".format(contract['tender_id']),
+                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_GET_EXTRA_INFO},
+                                                  {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
+                tender_data = self.get_tender_credentials(contract['tender_id'])
+                assert 'owner' in tender_data.data
+                assert 'tender_token' in tender_data.data
+                self.unsuccessful_contracts_in_prepare_contracts.clear()
+            except Exception, e:
+                logger.warn("Can't get tender credentials {}".format(contract['tender_id']),
+                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION},
+                                                  {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
+                logger.exception(e)
+                self.handicap_contracts_queue_retry.put(contract)
+                self.unsuccessful_contracts_in_prepare_contracts.add(contract['id'])
+                if len(self.unsuccessful_contracts_in_prepare_contracts) >= self.unsuccessful_contracts_limit:
+                    # Current server stopped processing requests, reconnecting to other
+                    logger.info("Reconnecting contract client",
+                                extra=journal_context({"MESSAGE_ID": DATABRIDGE_RECONNECT},
+                                                      {"CONTRACT_ID": contract['id'],
+                                                       "TENDER_ID": contract['tender_id']}))
+                    self.contracting_client_init()
+                    self.unsuccessful_contracts_in_prepare_contracts.clear()
+                gevent.sleep(self.on_error_delay)
+            else:
+                logger.debug("Got extra info for tender {}".format(contract['tender_id']),
+                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_GOT_EXTRA_INFO},
+                                                   {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
+                data = tender_data.data
+                contract['owner'] = data['owner']
+                contract['tender_token'] = data['tender_token']
+                self.contracts_put_queue.put(contract)
             gevent.sleep(0)
+
+    @retry(stop_max_attempt_number=5, wait_exponential_multiplier=1000 * 50)
+    def _prepare_contract_with_retry(self, contract):
+        logger.info("Getting extra info for tender {}".format(contract['tender_id']),
+                    extra=journal_context({"MESSAGE_ID": DATABRIDGE_GET_EXTRA_INFO},
+                                          {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
+        tender_data = self.get_tender_credentials(contract['tender_id'])
+        assert 'owner' in tender_data.data
+        assert 'tender_token' in tender_data.data
 
     def prepare_contract_data_retry(self):
         while True:
             contract = self.handicap_contracts_queue_retry.get()
-            self.prepare_contract(contract)
+            try:
+                self._prepare_contract_with_retry(contract)
+                tender_data = self.get_tender_credentials(contract['tender_id'])
+            except Exception, e:
+                logger.warn("Can't get tender credentials {}".format(contract['tender_id']),
+                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION},
+                                                  {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
+                logger.exception(e)
+                raise
+            else:
+                logger.debug("Got extra info for tender {}".format(contract['tender_id']),
+                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_GOT_EXTRA_INFO},
+                                                   {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
+                data = tender_data.data
+                contract['owner'] = data['owner']
+                contract['tender_token'] = data['tender_token']
+                self.contracts_put_queue.put(contract)
             gevent.sleep(0)
 
     def put_contracts(self):
@@ -404,7 +425,7 @@ class ContractingDataBridge(object):
                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_RETRY_CREATE}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
                 self.contracts_retry_put_queue.put(contract)
                 self.unsuccessful_contracts.add(contract['id'])
-                if len( self.unsuccessful_contracts) >= self.unsuccessful_contracts_limit:
+                if len(self.unsuccessful_contracts) >= self.unsuccessful_contracts_limit:
                     # Current server stopped processing requests, reconnecting to other
                     logger.info("Reconnecting contract client",
                                 extra=journal_context({"MESSAGE_ID": DATABRIDGE_RECONNECT}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
