@@ -126,13 +126,12 @@ class ContractingDataBridge(object):
         self.initialization_event = gevent.event.Event()
         self.tenders_queue = Queue(maxsize=queue_size)
         self.handicap_contracts_queue = Queue(maxsize=queue_size)
+        self.handicap_contracts_queue_retry = Queue(maxsize=queue_size)
         self.contracts_put_queue = Queue(maxsize=queue_size)
         self.contracts_retry_put_queue = Queue(maxsize=queue_size)
-        self.basket = {}
-        self.handicap_contracts_queue_retry = Queue(maxsize=queue_size)
-        self.unsuccessful_contracts_limit = 10
-        self.unsuccessful_contracts = set()
         self.unsuccessful_contracts_in_prepare_contracts = set()
+        self.unsuccessful_contracts = set()
+        self.basket = {}
 
     def contracting_client_init(self):
         logger.info('Initialization contracting clients.',  extra=journal_context({"MESSAGE_ID": DATABRIDGE_INFO}, {}))
@@ -339,6 +338,7 @@ class ContractingDataBridge(object):
             gevent.sleep(0)
 
     def prepare_contract_data(self):
+        unsuccessful_contracts_limit = 10
         while True:
             contract = self.handicap_contracts_queue.get()
             try:
@@ -356,7 +356,7 @@ class ContractingDataBridge(object):
                 logger.exception(e)
                 self.handicap_contracts_queue_retry.put(contract)
                 self.unsuccessful_contracts_in_prepare_contracts.add(contract['id'])
-                if len(self.unsuccessful_contracts_in_prepare_contracts) >= self.unsuccessful_contracts_limit:
+                if len(self.unsuccessful_contracts_in_prepare_contracts) >= unsuccessful_contracts_limit:
                     # Current server stopped processing requests, reconnecting to other
                     logger.info("Reconnecting contract client",
                                 extra=journal_context({"MESSAGE_ID": DATABRIDGE_RECONNECT},
@@ -395,7 +395,6 @@ class ContractingDataBridge(object):
                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION},
                                                   {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
                 logger.exception(e)
-                raise
             else:
                 logger.debug("Got extra info for tender {}".format(contract['tender_id']),
                              extra=journal_context({"MESSAGE_ID": DATABRIDGE_GOT_EXTRA_INFO},
@@ -407,6 +406,7 @@ class ContractingDataBridge(object):
             gevent.sleep(0)
 
     def put_contracts(self):
+        unsuccessful_contracts_limit = 10
         while True:
             contract = self.contracts_put_queue.get()
             try:
@@ -425,7 +425,7 @@ class ContractingDataBridge(object):
                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_RETRY_CREATE}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
                 self.contracts_retry_put_queue.put(contract)
                 self.unsuccessful_contracts.add(contract['id'])
-                if len(self.unsuccessful_contracts) >= self.unsuccessful_contracts_limit:
+                if len(self.unsuccessful_contracts) >= unsuccessful_contracts_limit:
                     # Current server stopped processing requests, reconnecting to other
                     logger.info("Reconnecting contract client",
                                 extra=journal_context({"MESSAGE_ID": DATABRIDGE_RECONNECT}, {"CONTRACT_ID": contract['id'], "TENDER_ID": contract['tender_id']}))
