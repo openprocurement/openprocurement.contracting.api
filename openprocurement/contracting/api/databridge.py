@@ -375,7 +375,7 @@ class ContractingDataBridge(object):
                 self.contracts_put_queue.put(contract)
             gevent.sleep(0)
 
-    @retry(stop_max_attempt_number=5, wait_exponential_multiplier=1000 * 50)
+    @retry(stop_max_attempt_number=7, wait_exponential_multiplier=1000 * 90)
     def get_correct_tender_data_with_retry(self, contract):
         logger.info("Getting extra info for tender {}".format(contract['tender_id']),
                     extra=journal_context({"MESSAGE_ID": DATABRIDGE_GET_EXTRA_INFO},
@@ -437,7 +437,7 @@ class ContractingDataBridge(object):
 
             gevent.sleep(0)
 
-    @retry(stop_max_attempt_number=7, wait_exponential_multiplier=1000 * 90)
+    @retry(stop_max_attempt_number=8, wait_exponential_multiplier=1000 * 3600)
     def _put_with_retry(self, contract):
         try:
             data = {"data": contract.toDict()}
