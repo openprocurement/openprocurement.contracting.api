@@ -362,7 +362,10 @@ class ContractingDataBridge(object):
                                 extra=journal_context({"MESSAGE_ID": DATABRIDGE_RECONNECT},
                                                       {"CONTRACT_ID": contract['id'],
                                                        "TENDER_ID": contract['tender_id']}))
-                    self.contracting_client_init()
+                    self.client = TendersClient(
+                        self.config_get('api_token'),
+                        host_url=self.api_server, api_version=self.api_version
+                    )
                     self.unsuccessful_contracts_in_prepare_contracts.clear()
                 gevent.sleep(self.on_error_delay)
             else:
