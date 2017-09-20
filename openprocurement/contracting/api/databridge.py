@@ -352,8 +352,7 @@ class ContractingDataBridge(object):
                 unsuccessful_contracts.clear()
             except Exception, e:
                 logger.warn("Can't get tender credentials {}".format(contract['tender_id']),
-                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION},
-                                                  {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
+                            extra=journal_context({"MESSAGE_ID": DATABRIDGE_EXCEPTION}, {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
                 logger.exception(e)
                 self.handicap_contracts_queue_retry.put(contract)
                 unsuccessful_contracts.add(contract['id'])
@@ -371,8 +370,7 @@ class ContractingDataBridge(object):
                 gevent.sleep(self.on_error_delay)
             else:
                 logger.debug("Got extra info for tender {}".format(contract['tender_id']),
-                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_GOT_EXTRA_INFO},
-                                                   {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
+                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_GOT_EXTRA_INFO}, {"TENDER_ID": contract['tender_id'], "CONTRACT_ID": contract['id']}))
                 data = tender_data.data
                 contract['owner'] = data['owner']
                 contract['tender_token'] = data['tender_token']
@@ -493,7 +491,6 @@ class ContractingDataBridge(object):
                     logger.info('Tender {} not modified from last check. Skipping'.format(tender_data['id']), extra=journal_context(
                         {"MESSAGE_ID": DATABRIDGE_SKIP_NOT_MODIFIED}, {"TENDER_ID": tender_data['id']}))
                     continue
-
                 logger.info('Backward sync: Put tender {} to process...'.format(tender_data['id']),
                             extra=journal_context({"MESSAGE_ID": DATABRIDGE_TENDER_PROCESS}, {"TENDER_ID": tender_data['id']}))
                 self.tenders_queue.put(tender_data)
@@ -551,6 +548,7 @@ class ContractingDataBridge(object):
                 logger.info("Successfully transfered contracts: {}".format(transfered_contracts))
             else:
                 logger.info("Tender {} does not contain contracts to transfer".format(tender_id))
+
 
     def _start_synchronization_workers(self):
         logger.info('Starting forward and backward sync workers')
