@@ -55,6 +55,7 @@ def from0to1(registry):
             doc['suppliers'] = rel_award['suppliers']
             if "value" not in doc:
                 doc['value'] = rel_award['value']
+                doc['value']['amount'] = float(doc['value']['amount'])
 
             doc['dateModified'] = get_now().isoformat()
 
