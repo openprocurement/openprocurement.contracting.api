@@ -26,9 +26,6 @@ entry_points = {
     'openprocurement.api.plugins': [
         'contracting = openprocurement.contracting.api:includeme'
     ],
-    'openprocurement.api.migrations': [
-        'contracts = openprocurement.contracting.api.migration:migrate_data'
-    ]
 }
 
 setup(name='openprocurement.contracting.api',

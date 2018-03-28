@@ -2,13 +2,12 @@
 
 import unittest
 
-from openprocurement.contracting.api.tests import contract, document
+from openprocurement.contracting.api.tests import contract
 
 
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(contract.suite())
-    suite.addTest(document.suite())
     return suite
 
 
