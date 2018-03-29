@@ -3,17 +3,9 @@ from functools import partial
 from pkg_resources import get_distribution
 from logging import getLogger
 from cornice.resource import resource
-from schematics.exceptions import ModelValidationError
 from openprocurement.api.utils import (
     error_handler,
-    get_revision_changes,
-    context_unpack,
-    apply_data_patch,
-    generate_id,
-    set_modetest_titles,
-    get_now
 )
-from openprocurement.api.models import Revision
 
 from openprocurement.contracting.core.traversal import factory
 from openprocurement.contracting.core.models import Contract
