@@ -7,7 +7,7 @@ from openprocurement.api.utils import (
     error_handler,
 )
 
-from openprocurement.contracting.core.traversal import factory
+from openprocurement.contracting.api.traversal import factory
 from openprocurement.contracting.core.models import Contract
 
 
