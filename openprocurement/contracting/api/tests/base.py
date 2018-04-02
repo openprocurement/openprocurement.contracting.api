@@ -2,7 +2,13 @@
 import os
 import unittest
 import webtest
-from openprocurement.api.constants import VERSION
+from base64 import b64encode
+from requests.models import Response
+from urllib import urlencode
+from uuid import uuid4
+from webtest import TestApp
+
+from openprocurement.api.constants import VERSION, SESSION
 
 
 class PrefixedRequestClass(webtest.app.TestRequest):
@@ -20,10 +26,11 @@ class BaseWebTest(unittest.TestCase):
     """
     initial_auth = ('Basic', ('token', ''))
     docservice = False
+    relative_to = os.path.dirname(__file__)
 
     def setUp(self):
         self.app = webtest.TestApp(
-            "config:tests.ini", relative_to=os.path.dirname(__file__))
+            "config:tests.ini", relative_to=self.relative_to)
         self.app.RequestClass = PrefixedRequestClass
         self.app.authorization = self.initial_auth
         self.couchdb_server = self.app.app.registry.couchdb_server
