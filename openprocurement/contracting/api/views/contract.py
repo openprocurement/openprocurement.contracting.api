@@ -4,6 +4,7 @@ from openprocurement.api.utils import (
 )
 from openprocurement.contracting.api.utils import (
     contractingresource,
+    contract_serialize
 )
 from openprocurement.contracting.api.design import (
     FIELDS,
