@@ -27,6 +27,7 @@ contractingresource = partial(
     factory=factory
 )
 
+
 def extract_contract_adapter(request, contract_id):
     db = request.registry.db
     doc = db.get(contract_id)

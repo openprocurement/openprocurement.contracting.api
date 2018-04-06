@@ -101,4 +101,3 @@ conflicts_view = ViewDefinition('conflicts', 'all', '''function(doc) {
         emit(doc._rev, [doc._rev].concat(doc._conflicts));
     }
 }''')
-

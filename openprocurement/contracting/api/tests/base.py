@@ -6,13 +6,12 @@ from base64 import b64encode
 from requests.models import Response
 from urllib import urlencode
 from uuid import uuid4
-from webtest import TestApp
 
 from openprocurement.api.constants import VERSION, SESSION
 
 
 class PrefixedRequestClass(webtest.app.TestRequest):
-    
+
     @classmethod
     def blank(cls, path, *args, **kwargs):
         path = '/api/%s%s' % (VERSION, path)
@@ -41,13 +40,15 @@ class BaseWebTest(unittest.TestCase):
     def setUpDS(self):
         self.app.app.registry.docservice_url = 'http://localhost'
         test = self
+
         def request(method, url, **kwargs):
             response = Response()
             if method == 'POST' and '/upload' in url:
                 url = test.generate_docservice_url()
                 response.status_code = 200
                 response.encoding = 'application/json'
-                response._content = '{{"data":{{"url":"{url}","hash":"md5:{md5}","format":"application/msword","title":"name.doc"}},"get_url":"{url}"}}'.format(url=url, md5='0'*32)
+                response._content = '{{"data":{{"url":"{url}","hash":"md5:{md5}","format":"application/msword",\
+                                     "title":"name.doc"}},"get_url":"{url}"}}'.format(url=url, md5='0'*32)
                 response.reason = '200 OK'
             return response
 
