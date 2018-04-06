@@ -10,6 +10,7 @@ test_requires = requires + [
     'webtest',
     'python-coveralls',
     'openprocurement.tender.belowthreshold',
+    'munch'
 ]
 
 docs_requires = requires + [

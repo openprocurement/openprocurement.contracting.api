@@ -7,6 +7,19 @@ from requests.models import Response
 from urllib import urlencode
 from uuid import uuid4
 
+from couchdb_schematics.document import SchematicsDocument
+from schematics.transforms import whitelist
+from schematics.types import StringType
+from schematics.types.compound import ModelType
+from openprocurement.api.models import (
+    Contract as BaseContract,
+    Document as BaseDocument,
+    plain_role,
+    ListType,
+    Revision,
+    IsoDateTimeType,
+    schematics_default_role
+)
 from openprocurement.api.constants import VERSION, SESSION
 
 
@@ -70,3 +83,32 @@ class BaseWebTest(unittest.TestCase):
         if self.docservice:
             self.tearDownDS()
         del self.couchdb_server[self.db.name]
+
+
+def error_handler(variable):
+    exception = Exception()
+    exception.message = variable
+    return exception
+
+
+class Document(BaseDocument):
+    documentOf = StringType(required=True, choices=['contract'],
+                            default='contract')
+
+
+class Contract(SchematicsDocument, BaseContract):
+    contractType = StringType(default='common')
+    mode = StringType(choices=['test'])
+    dateModified = IsoDateTimeType()
+    create_accreditation = 1
+    documents = ListType(ModelType(Document), default=list())
+    revisions = ListType(ModelType(Revision), default=list())
+    owner_token = StringType(default=lambda: uuid4().hex)
+
+    class Options:
+        roles = {
+            'plain': plain_role,
+            'create': (whitelist('id', )),
+            'view': (whitelist('id', )),
+            'default': schematics_default_role,
+        }
