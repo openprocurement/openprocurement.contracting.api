@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-import os
 
 version = '2.4.2'
 
@@ -11,6 +10,7 @@ test_requires = requires + [
     'webtest',
     'python-coveralls',
     'openprocurement.tender.belowthreshold',
+    'munch'
 ]
 
 docs_requires = requires + [
@@ -24,11 +24,8 @@ api_requires = requires + [
 
 entry_points = {
     'openprocurement.api.plugins': [
-        'contracting = openprocurement.contracting.api:includeme'
+        'contracting = openprocurement.contracting.api.includeme:includeme'
     ],
-    'openprocurement.api.migrations': [
-        'contracts = openprocurement.contracting.api.migration:migrate_data'
-    ]
 }
 
 setup(name='openprocurement.contracting.api',

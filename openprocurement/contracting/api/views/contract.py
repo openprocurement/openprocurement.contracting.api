@@ -1,24 +1,14 @@
 # -*- coding: utf-8 -*-
-from functools import partial
 from openprocurement.api.utils import (
-    context_unpack,
-    decrypt,
-    encrypt,
     json_view,
-    APIResource,
+    context_unpack,
     APIResourceListing,
-    error_handler
 )
-
 from openprocurement.contracting.api.utils import (
-    contractingresource, apply_patch, contract_serialize, set_ownership,
-    save_contract)
-from openprocurement.contracting.api.validation import (
-    validate_contract_data,
-    validate_patch_contract_data,
-    validate_credentials_generate,
-    validate_contract_update_not_in_allowed_status,
-    validate_terminate_contract_without_amountPaid)
+    contractingresource,
+    contract_serialize,
+    save_contract
+)
 from openprocurement.contracting.api.design import (
     FIELDS,
     contracts_by_dateModified_view,
@@ -28,6 +18,7 @@ from openprocurement.contracting.api.design import (
     contracts_real_by_local_seq_view,
     contracts_test_by_local_seq_view,
 )
+from openprocurement.contracting.api.validation import validate_contract_data
 
 VIEW_MAP = {
     u'': contracts_real_by_dateModified_view,
@@ -51,6 +42,7 @@ FEED = {
                      path='/contracts',
                      description="Contracts")
 class ContractsResource(APIResourceListing):
+    """ Contract resource used only for contract listing """
 
     def __init__(self, request, context):
         super(ContractsResource, self).__init__(request, context)
@@ -80,56 +72,6 @@ class ContractsResource(APIResourceListing):
                              extra=context_unpack(self.request, {'MESSAGE_ID': 'contract_create'},
                                                   {'contract_id': contract.id, 'contractID': contract.contractID or ''}))
             self.request.response.status = 201
-            return {
-                'data': contract.serialize("view"),
-                'access': {
-                    'token': contract.owner_token
-                }
-            }
-
-
-@contractingresource(name='Contract',
-                     path='/contracts/{contract_id}',
-                     description="Contract")
-class ContractResource(ContractsResource):
-
-    @json_view(permission='view_contract')
-    def get(self):
-        return {'data': self.request.validated['contract'].serialize("view")}
-
-    @json_view(content_type="application/json", permission='edit_contract',
-               validators=(validate_patch_contract_data, validate_contract_update_not_in_allowed_status))
-    def patch(self):
-        """Contract Edit (partial)
-        """
-        contract = self.request.validated['contract']
-        apply_patch(self.request, save=False, src=self.request.validated['contract_src'])
-
-        validate_terminate_contract_without_amountPaid(self.request)
-
-        if save_contract(self.request):
-            self.LOGGER.info('Updated contract {}'.format(contract.id),
-                            extra=context_unpack(self.request, {'MESSAGE_ID': 'contract_patch'}))
-            return {'data': contract.serialize('view')}
-
-
-@contractingresource(name='Contract credentials',
-                     path='/contracts/{contract_id}/credentials',
-                     description="Contract credentials")
-class ContractCredentialsResource(APIResource):
-
-    def __init__(self, request, context):
-        super(ContractCredentialsResource, self).__init__(request, context)
-        self.server = request.registry.couchdb_server
-
-    @json_view(permission='generate_credentials', validators=(validate_credentials_generate,))
-    def patch(self):
-        contract = self.request.validated['contract']
-
-        set_ownership(contract, self.request)
-        if save_contract(self.request):
-            self.LOGGER.info('Generate Contract credentials {}'.format(contract.id),
-                        extra=context_unpack(self.request, {'MESSAGE_ID': 'contract_patch'}))
             return {
                 'data': contract.serialize("view"),
                 'access': {

@@ -2,28 +2,34 @@
 from functools import partial
 from pkg_resources import get_distribution
 from logging import getLogger
+from pyramid.compat import decode_path_info
+from pyramid.exceptions import URLDecodeError
 from cornice.resource import resource
 from schematics.exceptions import ModelValidationError
+
 from openprocurement.api.utils import (
-    error_handler, get_revision_changes, context_unpack, apply_data_patch,
-    generate_id, set_modetest_titles, get_now,
+    get_now,
+    error_handler,
+    context_unpack,
+    set_modetest_titles,
+    get_revision_changes
 )
 from openprocurement.api.models import Revision
-
 from openprocurement.contracting.api.traversal import factory
-from openprocurement.contracting.api.models import Contract
 
-
-contractingresource = partial(resource, error_handler=error_handler,
-                              factory=factory)
 
 PKG = get_distribution(__package__)
 LOGGER = getLogger(PKG.project_name)
 
+contractingresource = partial(
+    resource,
+    error_handler=error_handler,
+    factory=factory
+)
 
-def extract_contract(request):
+
+def extract_contract_adapter(request, contract_id):
     db = request.registry.db
-    contract_id = request.matchdict['contract_id']
     doc = db.get(contract_id)
     if doc is not None and doc.get('doc_type') == 'contract':
         request.errors.add('url', 'contract_id', 'Archived')
@@ -37,10 +43,35 @@ def extract_contract(request):
     return request.contract_from_data(doc)
 
 
+def extract_contract(request):
+    try:
+        # empty if mounted under a path in mod_wsgi, for example
+        path = decode_path_info(request.environ['PATH_INFO'] or '/')
+    except KeyError:
+        path = '/'
+    except UnicodeDecodeError as e:
+        raise URLDecodeError(e.encoding, e.object, e.start, e.end, e.reason)
+
+    contract_id = ""
+    # extract contract id
+    parts = path.split('/')
+    if len(parts) < 4 or parts[3] != 'contracts':
+        return
+
+    contract_id = parts[4]
+    return extract_contract_adapter(request, contract_id)
+
+
 def contract_from_data(request, data, raise_error=True, create=True):
-    if create:
-        return Contract(data)
-    return Contract
+    contractType = data.get('contractType', 'common')
+    model = request.registry.contract_contractTypes.get(contractType)
+    if model is None and raise_error:
+        request.errors.add('data', 'contractType', 'Not implemented')
+        request.errors.status = 415
+        raise error_handler(request.errors)
+    if model is not None and create:
+        model = model(data)
+    return model
 
 
 def contract_serialize(request, contract_data, fields):
@@ -81,16 +112,3 @@ def save_contract(request):
                 extra=context_unpack(request, {'MESSAGE_ID': 'save_contract'},
                                      {'CONTRACT_REV': contract.rev}))
             return True
-
-
-def apply_patch(request, data=None, save=True, src=None):
-    data = request.validated['data'] if data is None else data
-    patch = data and apply_data_patch(src or request.context.serialize(), data)
-    if patch:
-        request.context.import_data(patch)
-        if save:
-            return save_contract(request)
-
-
-def set_ownership(item, request):
-    item.owner_token = generate_id()
