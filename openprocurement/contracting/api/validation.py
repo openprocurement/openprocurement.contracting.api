@@ -3,7 +3,7 @@ from openprocurement.api.utils import update_logging_context, error_handler
 from openprocurement.api.validation import validate_json_data, validate_data
 
 
-def validate_contract_data(request):
+def validate_contract_data(request, **kwargs):
     update_logging_context(request, {'contract_id': '__new__'})
     data = request.validated['json_data'] = validate_json_data(request)
     model = request.contract_from_data(data, create=False)
