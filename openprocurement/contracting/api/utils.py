@@ -14,7 +14,7 @@ from openprocurement.api.utils import (
     set_modetest_titles,
     get_revision_changes
 )
-from openprocurement.api.models import Revision
+from openprocurement.api.models.auction_models.models import Revision
 from openprocurement.contracting.api.traversal import factory
 
 
@@ -34,11 +34,11 @@ def extract_contract_adapter(request, contract_id):
     if doc is not None and doc.get('doc_type') == 'contract':
         request.errors.add('url', 'contract_id', 'Archived')
         request.errors.status = 410
-        raise error_handler(request.errors)
+        raise error_handler(request)
     elif doc is None or doc.get('doc_type') != 'Contract':
         request.errors.add('url', 'contract_id', 'Not Found')
         request.errors.status = 404
-        raise error_handler(request.errors)
+        raise error_handler(request)
 
     return request.contract_from_data(doc)
 
@@ -68,7 +68,7 @@ def contract_from_data(request, data, raise_error=True, create=True):
     if model is None and raise_error:
         request.errors.add('data', 'contractType', 'Not implemented')
         request.errors.status = 415
-        raise error_handler(request.errors)
+        raise error_handler(request)
     if model is not None and create:
         model = model(data)
     return model
