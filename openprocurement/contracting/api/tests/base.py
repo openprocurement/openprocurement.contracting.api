@@ -1,26 +1,36 @@
 # -*- coding: utf-8 -*-
 import os
 import unittest
-import webtest
+import warnings
 from base64 import b64encode
-from requests.models import Response
 from urllib import urlencode
 from uuid import uuid4
 
+import webtest
+import zope.deferredimport
 from couchdb_schematics.document import SchematicsDocument
+from requests.models import Response
 from schematics.transforms import whitelist
 from schematics.types import StringType
 from schematics.types.compound import ModelType
+
+from openprocurement.api.constants import SESSION, VERSION
 from openprocurement.api.models import (
     Contract as BaseContract,
     Document as BaseDocument,
-    plain_role,
-    ListType,
-    Revision,
     IsoDateTimeType,
+    ListType,
+    plain_role,
+    Revision,
     schematics_default_role
 )
-from openprocurement.api.constants import VERSION, SESSION
+
+warnings.simplefilter("default")
+zope.deferredimport.initialize()
+zope.deferredimport.deprecated(
+    "Import from openprocurement.contracting.core.tests.base instead",
+    BaseContractWebTest='openprocurement.contracting.core.tests.base:BaseContractWebTest',
+)
 
 
 class PrefixedRequestClass(webtest.app.TestRequest):
@@ -61,7 +71,7 @@ class BaseWebTest(unittest.TestCase):
                 response.status_code = 200
                 response.encoding = 'application/json'
                 response._content = '{{"data":{{"url":"{url}","hash":"md5:{md5}","format":"application/msword",\
-                                     "title":"name.doc"}},"get_url":"{url}"}}'.format(url=url, md5='0'*32)
+                                     "title":"name.doc"}},"get_url":"{url}"}}'.format(url=url, md5='0' * 32)
                 response.reason = '200 OK'
             return response
 
