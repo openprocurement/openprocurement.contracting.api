@@ -4,6 +4,7 @@ version = '2.4.2'
 
 requires = [
     'setuptools',
+    'zope.deferredimport',
 ]
 
 test_requires = requires + [

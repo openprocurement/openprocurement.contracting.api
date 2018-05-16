@@ -7,6 +7,15 @@ from requests.models import Response
 from urllib import urlencode
 from uuid import uuid4
 
+import warnings
+warnings.simplefilter("default")
+import zope.deferredimport
+zope.deferredimport.initialize()
+zope.deferredimport.deprecated(
+    "Import from openprocurement.contracting.core.tests.base instead",
+    BaseContractWebTest='openprocurement.contracting.core.tests.base:BaseContractWebTest',
+)
+
 from couchdb_schematics.document import SchematicsDocument
 from schematics.transforms import whitelist
 from schematics.types import StringType
