@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 import os
 import unittest
+import warnings
 import webtest
+
+import zope.deferredimport
+
 from base64 import b64encode
-from requests.models import Response
 from urllib import urlencode
 from uuid import uuid4
 
+from requests.models import Response
 from couchdb_schematics.document import SchematicsDocument
 from schematics.transforms import whitelist
 from schematics.types import StringType
@@ -22,6 +26,12 @@ from openprocurement.api.models import (
 )
 from openprocurement.api.constants import VERSION, SESSION
 
+warnings.simplefilter("default")
+zope.deferredimport.initialize()
+zope.deferredimport.deprecated(
+    "Import from openprocurement.contracting.core.tests.base instead",
+    BaseContractWebTest='openprocurement.contracting.core.tests.base:BaseContractWebTest',
+)
 
 class PrefixedRequestClass(webtest.app.TestRequest):
 
